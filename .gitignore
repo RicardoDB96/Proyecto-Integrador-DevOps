@@ -1,0 +1,4 @@
+# Crear un archivo .gitignore
+echo "node_modules/" >> .gitignore
+echo "uploads/" >> .gitignore
+echo ".env" >> .gitignore

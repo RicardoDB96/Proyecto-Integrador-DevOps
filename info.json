@@ -1,0 +1,33 @@
+
+#OBTENER TODOS LOS SALONES
+GET http://localhost:5000/api/salones
+[
+    {
+        "_id": "67af858700e4461a56e282ae",
+        "nombre": "Salón VIP",
+        "ubicacion": "Monterrey",
+        "capacidad": 300,
+        "precio": 60000,
+        "descripcion": "Un salón exclusivo.",
+        "imagenes": [],
+        "disponibilidad": true,
+        "contacto": "vip@salon.com",
+        "createdAt": "2025-02-14T18:03:51.146Z",
+        "__v": 0
+    },
+    {
+        "_id": "67af8c8500e4461a56e282b1",
+        "nombre": "Salón Imperial",
+        "ubicacion": "CDMX",
+        "capacidad": 250,
+        "precio": 45000,
+        "descripcion": "Un salón de lujo exclusivo.",
+        "imagenes": [],
+        "disponibilidad": true,
+        "contacto": "imperial@salon.com",
+        "createdAt": "2025-02-14T18:33:41.311Z",
+        "__v": 0
+    }
+]
+
+
