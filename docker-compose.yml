@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: mongo-db
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build: .
+    container_name: event-backend
+    restart: always
+    ports:
+      - "5001:5001"
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URI: "mongodb://admin:password@mongo:27017/eventdb?authSource=admin"
+      PORT: 5001
+
+volumes:
+  mongo_data:

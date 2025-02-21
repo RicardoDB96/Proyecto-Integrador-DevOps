@@ -5,6 +5,8 @@ const cors = require("cors");
 const path = require("path");
 
 const app = express();
+const PORT = process.env.PORT || 5001;
+const MONGO_URI = process.env.MONGO_URI;
 
 // Middlewares
 app.use(express.json());
@@ -27,7 +29,7 @@ app.use("/api/reviews", reviewRoutes);
 
 // Conectar a MongoDB
 mongoose
-  .connect("mongodb://localhost:27017/event-marketplace", {
+  .connect(MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
@@ -35,7 +37,6 @@ mongoose
   .catch((err) => console.error("❌ Error al conectar a MongoDB:", err));
 
 // Iniciar servidor
-const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
