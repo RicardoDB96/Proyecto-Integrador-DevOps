@@ -1,3 +1,4 @@
+//backend/models/Salon.js
 const mongoose = require("mongoose");
 
 const SalonSchema = new mongoose.Schema({
