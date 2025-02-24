@@ -7,8 +7,9 @@ import DetalleSalonPage from "./pages/DetalleSalonPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ReservasPage from "./pages/ReservasPage";
-import AdminReservasPage from "./pages/AdminReservasPage"; // Nueva página
-import PagoExitoso from "./pages/PagoExitoso"; // Stripe
+import AdminReservasPage from "./pages/AdminReservasPage";
+import AdminAgregarSalonPage from "./pages/AdminAgregarSalonPage"; // Importar la nueva página de agregar salones
+import PagoExitoso from "./pages/PagoExitoso";
 
 function App() {
   const [usuario, setUsuario] = useState(null);
@@ -38,7 +39,12 @@ function App() {
         {usuario ? (
           <>
             <span>Hola, {usuario.nombre} 👋</span>
-            {usuario.rol === "admin" && <Link to="/admin/reservas">Admin Reservas</Link>}
+            {usuario.rol === "admin" && (
+              <>
+                <Link to="/admin/reservas">Admin Reservas</Link>
+                <Link to="/admin/agregar-salon">Agregar Salón</Link>
+              </>
+            )}
             <button onClick={handleLogout}>Cerrar Sesión</button>
           </>
         ) : (
@@ -56,12 +62,12 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/reservas" element={<ReservasPage />} />
-        <Route path="/admin/reservas" element={<AdminReservasPage />} /> {/* Nueva ruta */}
-        <Route path="/pago-exitoso" element={<PagoExitoso />} />;
+        <Route path="/admin/reservas" element={<AdminReservasPage />} />
+        <Route path="/admin/agregar-salon" element={<AdminAgregarSalonPage />} /> // Ruta protegida para agregar salones
+        <Route path="/pago-exitoso" element={<PagoExitoso />} />
       </Routes>
     </Router>
   );
 }
 
 export default App;
-

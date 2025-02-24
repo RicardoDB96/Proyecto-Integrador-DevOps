@@ -1,3 +1,5 @@
+// backend/routes/salones.js
+// Importaciones necesarias
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
@@ -7,23 +9,46 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/roleMiddleware");
 const fs = require("fs");
 
-// 🔹 Configuración de Multer para subida de imágenes
+// Configuración de almacenamiento de Multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/"); // Guardar imágenes en la carpeta 'uploads/'
+    cb(null, "uploads/");  // Directorio donde se guardarán los archivos
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); // Renombrar archivo con timestamp
+    cb(null, Date.now() + path.extname(file.originalname));  // Nombre de archivo único
   },
 });
 
-const upload = multer({ storage: storage });
+// Configuración de Multer para manejar múltiples imágenes
+const upload = multer({ storage: storage }).array('imagenes', 10);
 
-// 🔹 Buscar y filtrar salones (Debe estar antes que "/:id")
+// Ruta para crear un nuevo salón con imágenes
+router.post("/", authMiddleware, adminMiddleware, upload, async (req, res) => {
+  try {
+    const { nombre, ubicacion, capacidad, precio, descripcion, contacto } = req.body;
+    let imagenes = req.files.map(file => `/uploads/${file.filename}`);  // Procesa las rutas de las imágenes
+
+    const nuevoSalon = new Salon({
+      nombre,
+      ubicacion,
+      capacidad,
+      precio,
+      descripcion,
+      imagenes,  // Guarda todas las imágenes subidas
+      contacto,
+    });
+
+    await nuevoSalon.save();
+    res.status(201).json(nuevoSalon);
+  } catch (error) {
+    res.status(500).json({ mensaje: "Error al guardar el salón", error });
+  }
+});
+
+// 🔹 Buscar y filtrar salones
 router.get("/buscar", async (req, res) => {
   try {
     const { nombre, ubicacion, precioMin, precioMax, capacidadMin, capacidadMax, disponibilidad } = req.query;
-    
     let filtro = {};
 
     if (nombre) {
@@ -63,7 +88,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// 🔹 Obtener un solo salón por ID (Debe estar después de "/buscar")
+// 🔹 Obtener un solo salón por ID
 router.get("/:id", async (req, res) => {
   try {
     const salon = await Salon.findById(req.params.id);
@@ -74,11 +99,11 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// 🔹 Crear un salón con imagen (🔒 Solo Admin)
-router.post("/", authMiddleware, adminMiddleware, upload.single("imagen"), async (req, res) => {
+// 🔹 Crear un salón con imagen (Solo Admin)
+router.post("/", authMiddleware, adminMiddleware, upload, async (req, res) => {
   try {
     const { nombre, ubicacion, capacidad, precio, descripcion, contacto } = req.body;
-    const imagen = req.file ? `/uploads/${req.file.filename}` : null; // Guarda la imagen
+    const imagenes = req.files.map(file => `/uploads/${file.filename}`); // Convierte cada archivo en una ruta de imagen
 
     const nuevoSalon = new Salon({
       nombre,
@@ -86,7 +111,7 @@ router.post("/", authMiddleware, adminMiddleware, upload.single("imagen"), async
       capacidad,
       precio,
       descripcion,
-      imagenes: imagen ? [imagen] : [], // Guardamos la imagen en el array de imágenes
+      imagenes,
       contacto,
     });
 
@@ -97,7 +122,7 @@ router.post("/", authMiddleware, adminMiddleware, upload.single("imagen"), async
   }
 });
 
-// 🔹 Actualizar un salón (🔒 Solo Admin)
+// 🔹 Actualizar un salón (Solo Admin)
 router.put("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const salonActualizado = await Salon.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -108,26 +133,22 @@ router.put("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   }
 });
 
-// Eliminar un salón (🔒 Solo Admin)
+// 🔹 Eliminar un salón (Solo Admin)
 router.delete("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const salon = await Salon.findById(req.params.id);
     if (!salon) return res.status(404).json({ mensaje: "Salón no encontrado" });
 
     // Eliminar imágenes asociadas al salón
-    if (salon.imagenes && salon.imagenes.length > 0) {
-      salon.imagenes.forEach((imagen) => {
-        const imagePath = path.join(__dirname, "../", imagen);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath); // Borra el archivo de la carpeta /uploads
-          console.log(`🗑️ Imagen eliminada: ${imagePath}`);
-        }
-      });
-    }
+    salon.imagenes.forEach((imagen) => {
+      const imagePath = path.join(__dirname, "../", imagen);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath); // Borra el archivo de la carpeta /uploads
+      }
+    });
 
     // Eliminar el salón de la base de datos
     await Salon.findByIdAndDelete(req.params.id);
-
     res.json({ mensaje: "Salón eliminado correctamente" });
   } catch (error) {
     res.status(500).json({ mensaje: "Error al eliminar el salón", error });
