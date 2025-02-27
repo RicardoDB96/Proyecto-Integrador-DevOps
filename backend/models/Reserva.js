@@ -1,3 +1,4 @@
+//backend/models/Reserva.js
 const mongoose = require("mongoose");
 
 const ReservaSchema = new mongoose.Schema(

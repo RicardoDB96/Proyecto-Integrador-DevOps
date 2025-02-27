@@ -1,6 +1,3 @@
-
-#OBTENER TODOS LOS SALONES
-GET http://localhost:5000/api/salones
 [
     {
         "_id": "67af858700e4461a56e282ae",

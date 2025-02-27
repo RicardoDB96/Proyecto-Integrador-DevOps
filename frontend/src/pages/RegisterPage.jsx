@@ -5,6 +5,7 @@ import api from "../services/api";
 function RegisterPage() {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
+  const [telefono, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [mensaje, setMensaje] = useState("");
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ function RegisterPage() {
       const response = await api.post("/auth/register", {
         nombre,
         email,
+        telefono,
         password,
       });
 
@@ -30,6 +32,7 @@ function RegisterPage() {
         navigate("/");
       }, 1500);
     } catch (error) {
+      console.log(error)
       setMensaje("Error al registrarse. Verifica los datos.");
     }
   };
@@ -44,6 +47,16 @@ function RegisterPage() {
             type="text"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
+            required
+          />
+        </label>
+        <br />
+        <label>
+          Telefono:
+          <input
+            type="text"
+            value={telefono}
+            onChange={(e) => setPhone(e.target.value)}
             required
           />
         </label>

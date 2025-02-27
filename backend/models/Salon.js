@@ -1,4 +1,4 @@
-//backend/models/Salon.js
+// backend/models/Salon.js
 const mongoose = require("mongoose");
 
 const SalonSchema = new mongoose.Schema({
@@ -9,7 +9,9 @@ const SalonSchema = new mongoose.Schema({
   descripcion: { type: String, required: true },
   imagenes: { type: [String], default: [] },
   disponibilidad: { type: Boolean, default: true },
-  contacto: { type: String, required: true },
+  contacto: { type: String, required: true }, // Keep original contact field
+  telefono: { type: String, required: true }, // ✅ Added phone number
+  email: { type: String, required: true }, // ✅ Added email
   createdAt: { type: Date, default: Date.now },
 });
 

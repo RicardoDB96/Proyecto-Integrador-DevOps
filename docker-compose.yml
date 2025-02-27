@@ -1,0 +1,33 @@
+services:
+  mongo:
+    image: mongo:latest
+    container_name: mongo-db
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build: ./backend
+    container_name: event-backend
+    restart: always
+    ports:
+      - "5001:5001"
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URI: "mongodb://mongo-db:27017/eventdb"
+      PORT: 5001
+
+  frontend:
+    build: ./frontend
+    container_name: event-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

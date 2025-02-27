@@ -172,4 +172,18 @@ router.delete("/:id/admin", authMiddleware, adminMiddleware, async (req, res) =>
   }
 });
 
+
+/* 🔹 Obtener todas las reservas de un salón específico */
+router.get("/salon/:salonId", async (req, res) => {
+  try {
+    const { salonId } = req.params;
+    const reservas = await Reserva.find({ salon: salonId }).select("fecha estado");
+
+    res.json(reservas);
+  } catch (error) {
+    res.status(500).json({ mensaje: "Error al obtener reservas del salón", error });
+  }
+});
+
+
 module.exports = router;
