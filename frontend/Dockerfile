@@ -1,23 +1,27 @@
-# Usar una imagen base de Node.js
-FROM node:22-alpine AS builder
+# Use a lightweight Node.js image to build the frontend
+FROM node:18 AS build
 
-# Establecer el directorio de trabajo
+# Set working directory
 WORKDIR /app
 
-# Copiar archivos y instalar dependencias
-COPY package.json package-lock.json ./
-RUN npm install
+# Copy package.json and install dependencies
+COPY package*.json ./
+RUN npm install --omit=dev # Install only production dependencies
 
-# Copiar el resto del código y construir la aplicación
+# Copy the entire frontend code
 COPY . .
+
+# Build the frontend (React/Vue/Next.js)
 RUN npm run build
 
-# Usar Nginx para servir el frontend
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Use NGINX to serve the frontend in production
+FROM nginx:stable-alpine
 
-# Exponer el puerto 80 para el frontend
+# Copy the built frontend files from the build stage
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Expose port 80 for the frontend
 EXPOSE 80
 
-# Ejecutar Nginx
+# Start NGINX
 CMD ["nginx", "-g", "daemon off;"]

@@ -1,6 +1,9 @@
+// frontend/src/pages/AdminAgregarSalonPage.jsx
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { Form, Button, Container, Card, Row, Col, Image } from "react-bootstrap";
+import { FaPlus, FaArrowLeft } from "react-icons/fa";
 
 function AdminAgregarSalonPage() {
   const [form, setForm] = useState({
@@ -10,8 +13,12 @@ function AdminAgregarSalonPage() {
     precio: '',
     descripcion: '',
     contacto: '',
+    telefono: '',  // ✅ Added phone field
+    email: '',  // ✅ Added email field
   });
+
   const [imagenes, setImagenes] = useState(null);
+  const [preview, setPreview] = useState([]);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const usuario = JSON.parse(localStorage.getItem("usuario"));
@@ -30,78 +37,109 @@ function AdminAgregarSalonPage() {
   };
 
   const handleImagenChange = (e) => {
-    setImagenes(e.target.files);
+    const files = e.target.files;
+    setImagenes(files);
+    const previewUrls = Array.from(files).map(file => URL.createObjectURL(file));
+    setPreview(previewUrls);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     const formData = new FormData();
-    Object.keys(form).forEach(key => {
-      formData.append(key, form[key]);
-      console.log(key, form[key]); // Verificar los valores del formulario
-    });
-  
+    Object.keys(form).forEach(key => formData.append(key, form[key]));
+
     if (imagenes) {
-      Array.from(imagenes).forEach((image, index) => {
-        formData.append('imagenes', image);
-        console.log('Imagen ' + index, image); // Verificar las imágenes
+      Array.from(imagenes).forEach((image) => {
+        formData.append("imagenes", image);
       });
     }
-  
+
     try {
-      const response = await api.post("/salones", formData, {
+      await api.post("/salones", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
-      console.log('Respuesta:', response); // Verificar la respuesta del servidor
-      alert("Salón agregado con éxito");
-      navigate("/admin/reservas");
+      alert("✅ Salón agregado con éxito");
+      navigate("/admin/salones");
     } catch (error) {
-      console.error('Error al enviar los datos:', error);
-      alert("Error al agregar el salón. Verifica los campos y vuelve a intentarlo.");
+      console.error("❌ Error al agregar el salón:", error);
+      alert("⚠ Error al agregar el salón.");
     }
   };
-  
-  
 
   return (
-    <div>
-      <h2>Agregar Salón</h2>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Nombre:
-          <input type="text" name="nombre" value={form.nombre} onChange={handleChange} required />
-        </label>
-        <label>
-          Ubicación:
-          <input type="text" name="ubicacion" value={form.ubicacion} onChange={handleChange} required />
-        </label>
-        <label>
-          Capacidad:
-          <input type="number" name="capacidad" value={form.capacidad} onChange={handleChange} required />
-        </label>
-        <label>
-          Precio:
-          <input type="number" name="precio" value={form.precio} onChange={handleChange} required />
-        </label>
-        <label>
-          Descripción:
-          <textarea name="descripcion" value={form.descripcion} onChange={handleChange} required />
-        </label>
-        <label>
-          Contacto:
-          <input type="text" name="contacto" value={form.contacto} onChange={handleChange} required />
-        </label>
-        <label>
-          Imágenes:
-          <input type="file" name="imagenes" multiple onChange={handleImagenChange} />
-        </label>
-        <button type="submit">Agregar Salón</button>
-      </form>
-    </div>
+    <Container className="mt-4">
+      <Row className="justify-content-center">
+        <Col md={8}>
+          <Card className="p-4 shadow-lg">
+            <h2 className="text-center mb-4">🏛️ Agregar Nuevo Salón</h2>
+
+            <Form onSubmit={handleSubmit}>
+              <Form.Group className="mb-3">
+                <Form.Label>🏢 Nombre</Form.Label>
+                <Form.Control type="text" name="nombre" value={form.nombre} onChange={handleChange} required />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>📍 Ubicación</Form.Label>
+                <Form.Control type="text" name="ubicacion" value={form.ubicacion} onChange={handleChange} required />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>📞 Teléfono</Form.Label>
+                <Form.Control type="text" name="telefono" value={form.telefono} onChange={handleChange} required />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>📧 Correo Electrónico</Form.Label>
+                <Form.Control type="email" name="email" value={form.email} onChange={handleChange} required />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>👥 Capacidad</Form.Label>
+                <Form.Control type="number" name="capacidad" value={form.capacidad} onChange={handleChange} required />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>💰 Precio</Form.Label>
+                <Form.Control type="number" name="precio" value={form.precio} onChange={handleChange} required />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>📝 Descripción</Form.Label>
+                <Form.Control as="textarea" name="descripcion" rows={3} value={form.descripcion} onChange={handleChange} required />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>🖼️ Imágenes</Form.Label>
+                <Form.Control type="file" name="imagenes" multiple onChange={handleImagenChange} accept="image/*" />
+              </Form.Group>
+
+              {preview.length > 0 && (
+                <div className="mb-3 d-flex flex-wrap gap-2">
+                  {preview.map((src, index) => (
+                    <Image key={index} src={src} thumbnail width={100} height={100} />
+                  ))}
+                </div>
+              )}
+
+              <div className="d-flex justify-content-between">
+                <Button variant="success" type="submit">
+                  <FaPlus className="me-2" /> Agregar Salón
+                </Button>
+                
+                <Button variant="secondary" onClick={() => navigate("/admin/salones")}>
+                  <FaArrowLeft className="me-2" /> Cancelar
+                </Button>
+              </div>
+            </Form>
+          </Card>
+        </Col>
+      </Row>
+    </Container>
   );
 }
 

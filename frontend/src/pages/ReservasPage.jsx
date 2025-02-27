@@ -1,20 +1,21 @@
 // frontend/src/pages/ReservasPage.jsx
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
+import { Container, Table, Button, Badge, Alert } from "react-bootstrap";
 
 function ReservasPage() {
   const [reservas, setReservas] = useState([]);
-  const usuario = JSON.parse(localStorage.getItem("usuario"));
   const token = localStorage.getItem("token");
 
   useEffect(() => {
     if (!token) return;
 
-    api.get("/reservas/mis-reservas", {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(response => setReservas(response.data))
-    .catch(error => console.error("Error al obtener reservas:", error));
+    api
+      .get("/reservas/mis-reservas", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((response) => setReservas(response.data))
+      .catch((error) => console.error("Error al obtener reservas:", error));
   }, [token]);
 
   // 🔹 Cancelar una reserva
@@ -23,13 +24,11 @@ function ReservasPage() {
 
     try {
       await api.delete(`/reservas/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       alert("Reserva cancelada correctamente");
-      
-      // Actualizar lista de reservas después de cancelar
-      setReservas(reservas.filter(reserva => reserva._id !== id));
+      setReservas(reservas.filter((reserva) => reserva._id !== id));
     } catch (error) {
       alert("Error al cancelar la reserva");
       console.error("Error:", error);
@@ -39,12 +38,15 @@ function ReservasPage() {
   // 🔹 Iniciar proceso de pago con Stripe
   const handlePagar = async (reservaId) => {
     try {
-      const response = await api.post("/pagos/checkout", { reservaId }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.post(
+        "/pagos/checkout",
+        { reservaId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      // Redirigir al usuario a Stripe Checkout
-      window.location.href = response.data.url;
+      window.location.href = response.data.url; // Redirigir a Stripe Checkout
     } catch (error) {
       alert("Error al iniciar el pago");
       console.error("Error:", error);
@@ -54,12 +56,12 @@ function ReservasPage() {
   // 🔹 Confirmar pago (solo pruebas)
   const handleConfirmarPago = async (reservaId) => {
     try {
-      const response = await api.put(`/reservas/${reservaId}/confirmar-pago`, {}, {
+      await api.put(`/reservas/${reservaId}/confirmar-pago`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       alert("Pago confirmado con éxito");
-      setReservas(reservas.map(reserva => 
+      setReservas(reservas.map((reserva) =>
         reserva._id === reservaId ? { ...reserva, pagoRealizado: true } : reserva
       ));
     } catch (error) {
@@ -69,40 +71,78 @@ function ReservasPage() {
   };
 
   return (
-    <div>
-      <h2>Mis Reservas</h2>
+    <Container className="mt-4">
+      <h2 className="text-center">📅 Mis Reservas</h2>
+
       {reservas.length === 0 ? (
-        <p>No tienes reservas aún.</p>
+        <Alert variant="info" className="text-center mt-3">
+          No tienes reservas aún.
+        </Alert>
       ) : (
-        <ul>
-          {reservas.map((reserva) => (
-            <li key={reserva._id}>
-              <strong>{reserva.salon.nombre}</strong> - {new Date(reserva.fecha).toLocaleDateString()}
-              <p>Estado: {reserva.estado} - Total: ${reserva.total}</p>
+        <Table striped bordered hover responsive className="mt-3">
+          <thead>
+            <tr className="text-center">
+              <th>Salón</th>
+              <th>Fecha</th>
+              <th>Estado</th>
+              <th>Total</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reservas.map((reserva) => (
+              <tr key={reserva._id} className="text-center">
+                <td>{reserva.salon.nombre}</td>
+                <td>{new Date(reserva.fecha).toLocaleDateString()}</td>
+                <td>
+                  <Badge
+                    bg={
+                      reserva.estado === "aprobada"
+                        ? "success"
+                        : reserva.estado === "pendiente"
+                        ? "warning"
+                        : "danger"
+                    }
+                  >
+                    {reserva.estado}
+                  </Badge>
+                </td>
+                <td>${reserva.total}</td>
+                <td>
+                  {/* 🔹 Botones de Pago */}
+                  {reserva.estado === "aprobada" && !reserva.pagoRealizado ? (
+                    <>
+                      <Button variant="primary" size="sm" onClick={() => handlePagar(reserva._id)} className="me-2">
+                        💳 Pagar Ahora
+                      </Button>
+                      <Button variant="success" size="sm" onClick={() => handleConfirmarPago(reserva._id)}>
+                        ✅ Confirmar Pago (Pruebas)
+                      </Button>
+                    </>
+                  ) : reserva.pagoRealizado ? (
+                    <Badge bg="success">✅ Pago realizado</Badge>
+                  ) : (
+                    <Badge bg="secondary ">🚫 No disponible para pago</Badge>
+                  )}
 
-              {/* 🔹 Mostrar botones de pago solo si la reserva está aprobada y aún no está pagada */}
-              {reserva.estado === "aprobada" && !reserva.pagoRealizado ? (
-                <>
-                  <button onClick={() => handlePagar(reserva._id)}>Pagar Ahora</button>
-                  <button onClick={() => handleConfirmarPago(reserva._id)}>Confirmar Pago (Solo Pruebas)</button>
-                </>
-              ) : reserva.pagoRealizado ? (
-                <p>✅ Pago realizado</p>
-              ) : (
-                <p>🚫 No disponible para pago</p>
-              )}
-
-              {/* 🔹 Botón de cancelar: Solo si la reserva está pendiente */}
-              {reserva.estado === "pendiente" && (
-                <button onClick={() => handleCancelarReserva(reserva._id)}>
-                  Cancelar Reserva
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+                  {/* 🔹 Botón de Cancelar Reserva */}
+                  {reserva.estado === "pendiente" && (
+                    <Button
+                      variant="primary "
+                      size="sm"
+                      className="ms-2"
+                      onClick={() => handleCancelarReserva(reserva._id)}
+                    >
+                      ❌ Cancelar
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
       )}
-    </div>
+    </Container>
   );
 }
 

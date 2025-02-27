@@ -1,7 +1,8 @@
-//frontend/src/pages/AdminReservasPage.jsx
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { Container, Table, Button, Badge, Alert } from "react-bootstrap";
+import { FaCheckCircle, FaTimesCircle } from "react-icons/fa"; // Íconos
 
 function AdminReservasPage() {
   const [reservas, setReservas] = useState([]);
@@ -42,33 +43,72 @@ function AdminReservasPage() {
   };
 
   return (
-    <div>
-      <h2>Gestión de Reservas (Administrador)</h2>
-      {reservas.length === 0 ? (
-        <p>No hay reservas registradas.</p>
-      ) : (
-        <ul>
-          {reservas.map((reserva) => (
-            <li key={reserva._id}>
-              <strong>{reserva.salon.nombre}</strong> - {new Date(reserva.fecha).toLocaleDateString()}
-              <p>Cliente: {reserva.cliente.nombre} ({reserva.cliente.email})</p>
-              <p>Estado: <strong>{reserva.estado}</strong> - Total: ${reserva.total}</p>
+    <Container className="mt-5">
+      <h2 className="text-center mb-4">📅 Gestión de Reservas (Administrador)</h2>
 
-              {reserva.estado === "pendiente" && (
-                <>
-                  <button onClick={() => actualizarEstadoReserva(reserva._id, "aprobada")}>
-                    Aprobar
-                  </button>
-                  <button onClick={() => actualizarEstadoReserva(reserva._id, "rechazada")}>
-                    Rechazar
-                  </button>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
+      {reservas.length === 0 ? (
+        <Alert variant="warning" className="text-center">No hay reservas registradas.</Alert>
+      ) : (
+        <Table striped bordered hover responsive className="shadow-lg">
+          <thead className="table-dark">
+            <tr>
+              <th>Salón</th>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>Estado</th>
+              <th>Total</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reservas.map((reserva) => (
+              <tr key={reserva._id}>
+                <td>{reserva.salon?.nombre || "Sin salón"}</td>
+                <td>{reserva.fecha ? new Date(reserva.fecha).toLocaleDateString() : "Fecha desconocida"}</td>
+                <td>
+                  {reserva.cliente?.nombre || "Desconocido"} 
+                  <br/>
+                  <small className="text-muted">({reserva.cliente?.email || "Correo no disponible"})</small>
+                </td>
+                <td>
+                  <Badge 
+                    bg={
+                      reserva.estado === "pendiente" ? "warning" :
+                      reserva.estado === "aprobada" ? "success" :
+                      "danger"
+                    }
+                  >
+                    {reserva.estado}
+                  </Badge>
+                </td>
+                <td>${reserva.total}</td>
+                <td>
+                  {reserva.estado === "pendiente" && (
+                    <>
+                      <Button 
+                        variant="success" 
+                        size="sm" 
+                        className="me-2"
+                        onClick={() => actualizarEstadoReserva(reserva._id, "aprobada")}
+                      >
+                        <FaCheckCircle /> Aprobar
+                      </Button>
+                      <Button 
+                        variant="danger" 
+                        size="sm"
+                        onClick={() => actualizarEstadoReserva(reserva._id, "rechazada")}
+                      >
+                        <FaTimesCircle /> Rechazar
+                      </Button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
       )}
-    </div>
+    </Container>
   );
 }
 
