@@ -1,19 +1,25 @@
 ---
-- name: Desplegar app en EKS AWS
+- name: Desplegar app con Helm en EKS
   hosts: localhost
   connection: local
   vars:
-    docker_image_tag: "{{ lookup('env', 'DOCKER_IMAGE_TAG') }}"  # Usamos la variable de entorno para el tag de la imagen
+    docker_image_tag: "{{ DOCKER_IMAGE_TAG }}"
   tasks:
-    - name: Actualizar imagen del frontend en Kubernetes
+    - name: Desplegar backend con Helm
       shell: |
-        kubectl set image deployment/frontend frontend=${DOCKER_USERNAME}/mi-frontend:${docker_image_tag} -n default
+        helm upgrade --install backend ./helm/backend \
+          --namespace default \
+          --set image.repository=${DOCKER_USERNAME}/mi-backend \
+          --set image.tag={{ docker_image_tag }}
 
-    - name: Actualizar imagen del backend en Kubernetes
+    - name: Desplegar frontend con Helm
       shell: |
-        kubectl set image deployment/backend backend=${DOCKER_USERNAME}/mi-backend:${docker_image_tag} -n default
+        helm upgrade --install frontend ./helm/frontend \
+          --namespace default \
+          --set image.repository=${DOCKER_USERNAME}/mi-frontend \
+          --set image.tag={{ docker_image_tag }}
 
-    - name: Esperar que los pods se actualicen
+    - name: Esperar a que los deployments estén listos
       shell: |
         kubectl rollout status deployment/frontend -n default
         kubectl rollout status deployment/backend -n default
