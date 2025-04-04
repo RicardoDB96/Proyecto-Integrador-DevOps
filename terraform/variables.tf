@@ -1,11 +1,17 @@
+# variables.tf
 variable "project_id" {
-  description = "ID del Proyecto en Google Cloud"
+  description = "AWS-Reservo"
   type        = string
-  default     = "reservo-452207"
 }
 
 variable "region" {
-  description = "Región donde se desplegará el clúster"
+  description = "Región de AWS donde se desplegará el clúster"
   type        = string
-  default     = "us-central1"  # Puedes cambiarlo si lo necesitas
+  default     = "us-east-1"  # Puedes cambiar la región si lo deseas
+}
+
+variable "instance_type" {
+  description = "Tipo de instancia para los nodos"
+  type        = string
+  default     = "t2.medium"
 }

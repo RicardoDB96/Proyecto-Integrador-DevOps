@@ -1,0 +1,23 @@
+---
+- name: Desplegar app en EKS AWS
+  hosts: localhost
+  connection: local
+  vars:
+    docker_image_tag: "{{ lookup('env', 'DOCKER_IMAGE_TAG') }}"  # Usamos la variable de entorno para el tag de la imagen
+  tasks:
+    - name: Actualizar imagen del frontend en Kubernetes
+      shell: |
+        kubectl set image deployment/frontend frontend=${DOCKER_USERNAME}/mi-frontend:${docker_image_tag} -n default
+
+    - name: Actualizar imagen del backend en Kubernetes
+      shell: |
+        kubectl set image deployment/backend backend=${DOCKER_USERNAME}/mi-backend:${docker_image_tag} -n default
+
+    - name: Esperar que los pods se actualicen
+      shell: |
+        kubectl rollout status deployment/frontend -n default
+        kubectl rollout status deployment/backend -n default
+      register: result
+      until: result.rc == 0
+      retries: 5
+      delay: 30

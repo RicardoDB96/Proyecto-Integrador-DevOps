@@ -1,7 +1,8 @@
-output "kubernetes_cluster_name" {
-  value = google_container_cluster.reservocluster.name
+# outputs.tf
+output "eks_cluster_endpoint" {
+  value = aws_eks_cluster.main.endpoint
 }
 
-output "kubernetes_cluster_endpoint" {
-  value = google_container_cluster.reservocluster.endpoint
+output "eks_cluster_certificate_authority_data" {
+  value = aws_eks_cluster.main.certificate_authority[0].data
 }
