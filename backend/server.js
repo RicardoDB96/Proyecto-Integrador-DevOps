@@ -7,7 +7,6 @@ const cors = require("cors");
 const path = require("path");
 
 const app = express();
-const MONGO_URI = process.env.MONGO_URI;
 
 // Middlewares
 app.use(express.json());
@@ -32,12 +31,14 @@ app.use("/api/reviews", reviewRoutes);
 
 // Conectar a MongoDB
 mongoose
-  .connect(MONGO_URI, {})
-  .then(() => console.log("✅ Connected to MongoDB"))
+  .connect(process.env.MONGO_URI, {
+  })
+  .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
+
 // Iniciar servidor
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });

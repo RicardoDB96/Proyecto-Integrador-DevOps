@@ -1,38 +1,59 @@
-// backend/routes/salones.js
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
+const { Storage } = require("@google-cloud/storage");
 const path = require("path");
-const fs = require("fs");
 const Salon = require("../models/Salon");
 const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/roleMiddleware");
 
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/"); // Save images in the uploads folder
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
-  },
+const bucketName = "reservo-imagenes"; // 📌 Nombre del bucket en GCS
+
+// Configurar Google Cloud Storage
+const storage = new Storage({
+  keyFilename: path.resolve(__dirname, "../reservo-storage-key.json"),
 });
 
-const upload = multer({ storage: storage }).array("imagenes", 10); // Allows multiple images
+const bucket = storage.bucket(bucketName);
 
-// 🔹 Create a salon with images (Only Admin)
-router.post("/", authMiddleware, adminMiddleware, upload, async (req, res) => {
+// Configurar Multer para almacenar archivos en memoria antes de subirlos a GCS
+const upload = multer({ storage: multer.memoryStorage() });
+
+/**
+ * 📌 Subir archivo a Google Cloud Storage y obtener la URL pública.
+ */
+const uploadToGCS = async (file) => {
+  if (!file) throw new Error("No se subió ningún archivo.");
+
+  const filename = `${Date.now()}-${file.originalname}`;
+  const blob = bucket.file(filename);
+  const blobStream = blob.createWriteStream({
+    resumable: false,
+    public: true, // 📌 Hace la imagen accesible públicamente
+  });
+
+  return new Promise((resolve, reject) => {
+    blobStream.on("error", reject);
+    blobStream.on("finish", () => {
+      resolve(`https://storage.googleapis.com/${bucketName}/${filename}`);
+    });
+    blobStream.end(file.buffer);
+  });
+};
+
+/**
+ * 📌 Crear un nuevo salón con imágenes en GCS (Solo Admin)
+ */
+router.post("/", authMiddleware, adminMiddleware, upload.array("imagenes", 10), async (req, res) => {
   try {
-    console.log("📌 Request Body:", req.body);
-    console.log("📸 Uploaded Files:", req.files);
-
     const { nombre, ubicacion, capacidad, precio, descripcion, contacto, telefono, email } = req.body;
 
     if (!telefono || !email) {
       return res.status(400).json({ mensaje: "El teléfono y el correo son obligatorios" });
     }
 
-    const imagenes = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+    // Subir imágenes a GCS y obtener sus URLs
+    const imagenes = await Promise.all(req.files.map(uploadToGCS));
 
     const nuevoSalon = new Salon({
       nombre,
@@ -40,7 +61,7 @@ router.post("/", authMiddleware, adminMiddleware, upload, async (req, res) => {
       capacidad,
       precio,
       descripcion,
-      imagenes,
+      imagenes, // 📌 Guardamos las URLs de GCS en MongoDB
       contacto,
       telefono,
       email,
@@ -49,12 +70,14 @@ router.post("/", authMiddleware, adminMiddleware, upload, async (req, res) => {
     await nuevoSalon.save();
     res.status(201).json(nuevoSalon);
   } catch (error) {
-    console.error("❌ Error al guardar el salón:", error);
-    res.status(500).json({ mensaje: "Error al guardar el salón", error: error.message });
+    console.error("❌ Error al crear el salón:", error);
+    res.status(500).json({ mensaje: "Error al crear el salón", error: error.message });
   }
 });
 
-// 🔹 Get all salons
+/**
+ * 📌 Obtener todos los salones
+ */
 router.get("/", async (req, res) => {
   try {
     const salones = await Salon.find();
@@ -64,7 +87,9 @@ router.get("/", async (req, res) => {
   }
 });
 
-// 🔹 Get a single salon by ID
+/**
+ * 📌 Obtener un solo salón por ID
+ */
 router.get("/:id", async (req, res) => {
   try {
     const salon = await Salon.findById(req.params.id);
@@ -75,8 +100,10 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// 🔹 Update a salon (Only Admin) - Supports adding new images without deleting existing ones
-router.put("/:id", authMiddleware, adminMiddleware, upload, async (req, res) => {
+/**
+ * 📌 Actualizar un salón con imágenes en GCS (Solo Admin)
+ */
+router.put("/:id", authMiddleware, adminMiddleware, upload.array("imagenes", 10), async (req, res) => {
   try {
     const { nombre, ubicacion, capacidad, precio, descripcion, contacto, telefono, email, imagenesExistentes } = req.body;
 
@@ -93,8 +120,9 @@ router.put("/:id", authMiddleware, adminMiddleware, upload, async (req, res) => 
       imagenes = JSON.parse(imagenesExistentes);
     }
 
+    // Subir nuevas imágenes a GCS
     if (req.files.length > 0) {
-      const newImages = req.files.map(file => `/uploads/${file.filename}`);
+      const newImages = await Promise.all(req.files.map(uploadToGCS));
       imagenes = [...imagenes, ...newImages];
     }
 
@@ -106,11 +134,14 @@ router.put("/:id", authMiddleware, adminMiddleware, upload, async (req, res) => 
 
     res.json(salonActualizado);
   } catch (error) {
+    console.error("❌ Error al actualizar el salón:", error);
     res.status(500).json({ mensaje: "Error al actualizar el salón", error });
   }
 });
 
-// 🔹 Delete a specific image from a salon
+/**
+ * 📌 Eliminar una imagen de GCS y de MongoDB
+ */
 router.delete("/:id/imagen", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { imageUrl } = req.body;
@@ -119,36 +150,39 @@ router.delete("/:id/imagen", authMiddleware, adminMiddleware, async (req, res) =
     const salon = await Salon.findById(req.params.id);
     if (!salon) return res.status(404).json({ mensaje: "Salón no encontrado" });
 
+    // Eliminar imagen de GCS
+    const filename = imageUrl.split("/").pop();
+    await bucket.file(filename).delete();
+
+    // Eliminar URL de la imagen de MongoDB
     salon.imagenes = salon.imagenes.filter(img => img !== imageUrl);
     await salon.save();
 
-    const imagePath = path.join(__dirname, "../", imageUrl);
-    if (fs.existsSync(imagePath)) {
-      fs.unlinkSync(imagePath);
-    }
-
     res.json({ mensaje: "Imagen eliminada correctamente", salon });
   } catch (error) {
+    console.error("❌ Error al eliminar la imagen:", error);
     res.status(500).json({ mensaje: "Error al eliminar la imagen", error });
   }
 });
 
-// 🔹 Delete a salon (Only Admin)
+/**
+ * 📌 Eliminar un salón junto con sus imágenes en GCS (Solo Admin)
+ */
 router.delete("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const salon = await Salon.findById(req.params.id);
     if (!salon) return res.status(404).json({ mensaje: "Salón no encontrado" });
 
-    salon.imagenes.forEach(image => {
-      const imagePath = path.join(__dirname, "../", image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    });
+    // Eliminar imágenes del salón en GCS
+    await Promise.all(salon.imagenes.map((imageUrl) => {
+      const filename = imageUrl.split("/").pop();
+      return bucket.file(filename).delete();
+    }));
 
     await Salon.findByIdAndDelete(req.params.id);
     res.json({ mensaje: "Salón eliminado correctamente" });
   } catch (error) {
+    console.error("❌ Error al eliminar el salón:", error);
     res.status(500).json({ mensaje: "Error al eliminar el salón", error });
   }
 });

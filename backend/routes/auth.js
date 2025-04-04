@@ -8,37 +8,83 @@ const adminMiddleware = require("../middlewares/roleMiddleware");
 
 const router = express.Router();
 
-/* 🔹 Register a new user (Client) */
+const validatePhoneNumber = (telefono) => {
+  const phoneRegex = /^\d{10}$/; // Solo permite números de 10 dígitos
+  return phoneRegex.test(telefono);
+};
+
+// Asegurar que saltRounds sea un número válido
+const saltRounds = parseInt(process.env.SALT_ROUNDS, 10) || 10;
+console.log("🔢 Valor de saltRounds:", saltRounds); // ⬅️ Agregar log para verificar
+
 router.post("/register", async (req, res) => {
   try {
-    const { nombre, email, telefono, password } = req.body;
+    let { nombre, email, telefono, password } = req.body;
 
-    // Check if email or phone number already exists
+    // 🔹 Limpieza y normalización de los datos
+    nombre = nombre.trim();
+    email = email.trim().toLowerCase();
+    telefono = telefono.trim();
+
+    console.log("📌 Debug: Datos recibidos para registro:", { nombre, email, telefono, password });
+
+    // 🔹 Verificar que los campos no estén vacíos
+    if (!nombre || !email || !telefono || !password) {
+      console.error("❌ Faltan datos:", { nombre, email, telefono, password });
+      return res.status(400).json({ mensaje: "Todos los campos son obligatorios" });
+    }
+
+    // 🔹 Validar formato del número de teléfono
+    if (!validatePhoneNumber(telefono)) {
+      console.error("❌ Número de teléfono inválido:", telefono);
+      return res.status(400).json({ mensaje: "Número de teléfono no válido. Debe contener 10 dígitos." });
+    }
+
+    // 🔹 Validar formato del correo electrónico
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.error("❌ Correo electrónico inválido:", email);
+      return res.status(400).json({ mensaje: "El correo electrónico no es válido." });
+    }
+
+    // 🔹 Verificar si el usuario ya existe
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ mensaje: "El correo ya está registrado" });
 
     const existingPhone = await User.findOne({ telefono });
     if (existingPhone) return res.status(400).json({ mensaje: "El número de teléfono ya está registrado" });
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // 🔹 Verificar si la contraseña tiene al menos 6 caracteres
+    if (typeof password !== "string" || password.trim().length < 6) {
+      console.error("❌ Contraseña inválida:", password);
+      return res.status(400).json({ mensaje: "La contraseña debe tener al menos 6 caracteres" });
+    }
 
-    // Create the new user with role "cliente"
+    // 🔹 Encriptar la contraseña
+    console.log("🔑 Iniciando encriptación con saltRounds:", saltRounds);
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    console.log("✅ Contraseña encriptada correctamente");
+
+    // 🔹 Crear el usuario
     const newUser = new User({
       nombre,
       email,
       telefono,
       password: hashedPassword,
-      rol: "cliente" // 🔹 Ensure role is assigned
+      rol: "cliente",
     });
 
     await newUser.save();
+    console.log("✅ Usuario registrado correctamente:", newUser);
 
     res.status(201).json({ mensaje: "Usuario registrado correctamente", usuario: newUser });
+
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al registrar el usuario", error });
+    console.error("❌ ERROR EN EL REGISTRO:", error);
+    res.status(500).json({ mensaje: "Error interno del servidor", error });
   }
 });
+
 
 
 /* 🔹 Register First Admin (Only if no admin exists) */

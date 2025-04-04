@@ -1,20 +1,23 @@
-# Usar una imagen base de Node.js
-FROM node:22-alpine
+# Usar una imagen base de Node.js ligera
+FROM node:18-alpine
 
-# Establecer el directorio de trabajo dentro del contenedor
+# Establecer el directorio de trabajo en el contenedor
 WORKDIR /app
 
-# Copiar archivos necesarios
+# Copiar solo package.json y package-lock.json antes de instalar dependencias (optimiza el cacheo)
 COPY package.json package-lock.json ./
 
-# Instalar solo las dependencias de producción
+# Instalar dependencias sin incluir las de desarrollo
 RUN npm install --omit=dev
 
-# Copiar el resto del código
+# Copiar el resto del código de la aplicación
 COPY . .
 
-# Exponer el puerto del backend
-EXPOSE 5001
+# Exponer el puerto en el que corre la aplicación (ajusta si es necesario)
+EXPOSE 5000
 
-# Comando por defecto para ejecutar la API
+# Especificar la variable de entorno para producción
+ENV NODE_ENV=production
+
+# Comando para ejecutar la aplicación
 CMD ["node", "server.js"]

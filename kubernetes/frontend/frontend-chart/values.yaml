@@ -1,0 +1,27 @@
+#Reservo/kubernetes/frontend/frontend-chart/values.yaml
+replicaCount: 1
+
+image:
+  repository: fairoox94/mi-frontend
+  tag: "latest"
+  pullPolicy: Always
+
+service:
+  type: LoadBalancer
+  port: 80  # 🔹 Asegurar que este valor esté definido
+
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: frontend.reservo.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+serviceAccount:
+  create: false
+
+autoscaling:
+  enabled: false

@@ -11,27 +11,37 @@ const router = express.Router();
 router.post("/", authMiddleware, async (req, res) => {
   const { salonId, calificacion, comentario } = req.body;
 
-  // Validar que el usuario ha completado una reserva en este salón
+  // 📌 Validar si el usuario tiene una reserva aprobada y pagada en este salón
   const reservaValida = await Reserva.findOne({
     cliente: req.usuario.id,
     salon: salonId,
     estado: "aprobada",
     pagoRealizado: true
   });
+
   if (!reservaValida) {
-    return res.status(403).json({ mensaje: "No tienes reservas completadas en este salón que permitan agregar una reseña." });
+    return res.status(403).json({ mensaje: "🚫 No puedes agregar una reseña sin una reserva aprobada y pagada." });
   }
 
-  // Crear la reseña
-  const nuevaReseña = new Review({
-    cliente: req.usuario.id,
-    salon: salonId,
-    calificacion,
-    comentario,
-  });
+  // 📌 Crear y guardar la reseña en la base de datos
+  try {
+    const nuevaReseña = new Review({
+      cliente: req.usuario.id,
+      salon: salonId,
+      calificacion,
+      comentario,
+    });
 
-  await nuevaReseña.save();
-  res.status(201).json({ mensaje: "Reseña agregada con éxito", reseña: nuevaReseña });
+    await nuevaReseña.save();
+
+    res.status(201).json({
+      mensaje: "✅ Reseña agregada con éxito.",
+      reseña: nuevaReseña
+    });
+  } catch (error) {
+    console.error("❌ Error al guardar la reseña:", error);
+    res.status(500).json({ mensaje: "Error interno al guardar la reseña." });
+  }
 });
 
 /* 🔹 Obtener Reseñas de un Salón */
