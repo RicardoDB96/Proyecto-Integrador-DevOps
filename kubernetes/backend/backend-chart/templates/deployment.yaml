@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-backend
+  name: backend-backend-chart
   labels:
     app: backend
 spec:
@@ -37,3 +37,10 @@ spec:
                 secretKeyRef:
                   name: backend-secrets
                   key: stripe_secret_key
+          resources: #Ajuste para agregar recursos.
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

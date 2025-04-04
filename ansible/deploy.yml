@@ -1,0 +1,119 @@
+- name: Desplegar aplicación web en EC2 con Docker y Nginx
+  hosts: web
+  remote_user: ubuntu
+  become: yes
+  vars:
+    docker_image_tag: "{{ DOCKER_IMAGE_TAG }}"
+    docker_username: "{{ DOCKER_USERNAME }}"
+    aws_access_key_id: "{{ AWS_ACCESS_KEY_ID }}"
+    aws_secret_access_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+    aws_session_token: "{{ AWS_SESSION_TOKEN }}"
+    aws_region: "us-east-1"
+    eks_cluster_name: "mi-cluster-eks"
+    frontend_port: 80
+    backend_port: 8080
+    nginx_conf: |
+      server {
+          listen 80;
+          server_name {{ ansible_host }};
+  
+          location /api/ {
+              proxy_pass http://backend:{{ backend_port }}/;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+          }
+  
+          location / {
+              proxy_pass http://frontend:{{ frontend_port }};
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+          }
+      }
+    backend_env: |
+      {{ BACKEND_ENV }}
+
+  tasks:
+    - name: Actualizar paquetes (si es necesario)
+      apt:
+        name: "*"
+        state: latest
+      when: ansible_distribution == "Ubuntu" and ansible_facts['pkg_mgr'] == 'apt'
+
+    - name: Iniciar servicio Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Agregar usuario al grupo Docker
+      user:
+        name: "{{ ansible_user }}"
+        append: yes
+        groups: docker
+
+    - name: Crear directorio para la configuración de Nginx
+      file:
+        path: /home/{{ ansible_user }}/nginx-conf
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Copiar archivo de configuración de Nginx
+      copy:
+        content: "{{ nginx_conf }}"
+        dest: /home/{{ ansible_user }}/nginx-conf/nginx.conf
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
+
+    - name: Crear el directorio backend si no existe
+      file:
+        path: /home/{{ ansible_user }}/backend
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Crear archivo .env para el backend
+      copy:
+        content: "{{ backend_env }}"
+        dest: /home/{{ ansible_user }}/backend/.env
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
+
+    - name: Desplegar aplicación con Docker Compose v2
+      community.docker.docker_compose_v2:
+        project_name: reservo
+        definition:
+          services:
+            frontend:
+              image: "{{ docker_username }}/mi-frontend:{{ docker_image_tag }}"
+              ports:
+                - "{{ frontend_port }}:80"  # Exponer frontend en el puerto 80
+              networks:
+                - reservo_net
+
+            backend:
+              image: "{{ docker_username }}/mi-backend:{{ docker_image_tag }}"
+              ports:
+                - "{{ backend_port }}:8080"
+              networks:
+                - reservo_net
+              env_file:
+                - "/home/{{ ansible_user }}/backend/.env"  # Aquí se carga el archivo .env en el backend
+
+            nginx:
+              image: nginx:latest
+              ports:
+                - "80:80"
+              volumes:
+                - "/home/{{ ansible_user }}/nginx-conf/nginx.conf:/etc/nginx/conf.d/default.conf"
+              networks:
+                - reservo_net
+
+          networks:
+            reservo_net:
+              driver: bridge  # Definir la red como un puente para la comunicación entre contenedores
+        state: present

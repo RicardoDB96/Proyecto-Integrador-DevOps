@@ -1,14 +1,13 @@
-#Reservo/kubernetes/frontend/frontend-chart/values.yaml
 replicaCount: 1
 
 image:
-  repository: fairoox94/mi-frontend
+  repository: ricardodb/mi-frontend
   tag: "latest"
   pullPolicy: Always
 
 service:
-  type: LoadBalancer
-  port: 80  # 🔹 Asegurar que este valor esté definido
+  type: ClusterIP #Cambio de LoadBalancer a ClusterIP
+  port: 80
 
 ingress:
   enabled: true

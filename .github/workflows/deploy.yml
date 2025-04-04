@@ -1,0 +1,87 @@
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4.2.2
+
+      - name: 🔧 Set up Node.js
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: '18'
+
+      - name: Instalar dependencias y build
+        run: |
+          cd backend/ && npm install && npm run build
+          cd ../frontend/ && npm install && npm run build
+
+      - name: Docker Login
+        uses: docker/login-action@v3.4.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build y push de imágenes
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/mi-frontend:${{ github.sha }} ./frontend
+          docker push ${{ secrets.DOCKER_USERNAME }}/mi-frontend:${{ github.sha }}
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/mi-backend:${{ github.sha }} ./backend
+          docker push ${{ secrets.DOCKER_USERNAME }}/mi-backend:${{ github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4.2.2
+
+      - name: Crear archivo vars.yml para Ansible
+        run: |
+          echo "DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}" > ansible/vars.yml
+          echo "DOCKER_IMAGE_TAG: ${{ github.sha }}" >> ansible/vars.yml
+          echo "AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}" >> ansible/vars.yml
+          echo "AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> ansible/vars.yml
+          echo "AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}" >> ansible/vars.yml
+          echo "AWS_REGION: us-east-1" >> ansible/vars.yml
+          echo "BACKEND_ENV: \"${{ secrets.BACKEND_ENV }}\"" >> ansible/vars.yml
+
+      - name: Instalar Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      - name: Instalar eksctl
+        run: |
+          curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/v0.78.0/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/eksctl /usr/local/bin
+
+      - name: Crear .env en backend
+        run: |
+          echo "${{ secrets.BACKEND_ENV }}" > backend/.env
+
+      - name: Configurar SSH y convertir a PEM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssh-client
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keygen -p -m PEM -N "" -f ~/.ssh/id_rsa
+          chmod 400 ~/.ssh/id_rsa
+
+      - name: Crear archivo de inventario para Ansible
+        run: |
+          echo "[web]" > ansible/inventory
+          echo "ec2-instance ansible_host=${{ secrets.EC2_PUBLIC_IP }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/inventory
+          echo "[all:vars]" >> ansible/inventory
+          echo "ansible_python_interpreter=/usr/bin/python3" >> ansible/inventory
+
+      - name: Ejecutar Ansible Playbook
+        run: |
+          cd ansible
+          ansible-playbook -i inventory deploy.yml --extra-vars "@vars.yml" --private-key ~/.ssh/id_rsa
