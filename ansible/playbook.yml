@@ -54,7 +54,7 @@
       shell: |
         helm upgrade --install backend ./helm/backend \
           --namespace default \
-          --set image.repository=${DOCKER_USERNAME}/mi-backend \
+          --set image.repository={{ docker_username }}/mi-backend \
           --set image.tag={{ docker_image_tag }}
       register: backend_deploy
       retries: 3
@@ -65,7 +65,7 @@
       shell: |
         helm upgrade --install frontend ./helm/frontend \
           --namespace default \
-          --set image.repository=${DOCKER_USERNAME}/mi-frontend \
+          --set image.repository={{ docker_username }}/mi-frontend \
           --set image.tag={{ docker_image_tag }}
       register: frontend_deploy
       retries: 3
