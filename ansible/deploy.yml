@@ -1,7 +1,7 @@
 ---
-- name: Desplegar app con Helm en Kubernetes (EKS)
-  hosts: localhost
-  connection: local
+- name: Desplegar aplicación web en EC2 con Docker y Nginx
+  hosts: web
+  remote_user: ubuntu # Ajustado para coincidir con el inventario
   vars:
     docker_image_tag: "{{ DOCKER_IMAGE_TAG }}"
     docker_username: "{{ DOCKER_USERNAME }}"
