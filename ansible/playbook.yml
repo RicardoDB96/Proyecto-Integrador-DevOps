@@ -11,6 +11,15 @@
     aws_region: "us-east-1"  # Asegúrate de usar la región correcta
     eks_cluster_name: "mi-cluster-eks"  # Nombre del clúster EKS
   tasks:
+    - name: Verificar el contenido del directorio
+      shell: |
+        echo "Mostrando contenido del directorio actual:"
+        ls -l
+        echo "Mostrando contenido del directorio ./kubernetes:"
+        ls -l ./kubernetes
+        echo "Mostrando contenido del directorio ./kubernetes/backend:"
+        ls -l ./kubernetes/backend
+
     - name: Configurar AWS CLI (proporcionando credenciales manualmente)
       shell: |
         aws configure set aws_access_key_id {{ aws_access_key_id }}
