@@ -7,83 +7,6 @@ import SalonCalendar from "../components/SalonCalendar";
 import StarRatingInput from "../components/CalificacionEstrellas";
 import StarRating from "../components/Estrellas";
 
-const salonHardcoded = 
-  { _id: "1", nombre: "Gran Salón Imperial", ubicacion: "CDMX", capacidad: 500, precio: 15000, calificacion: 4.5, telefono: "555-123-4567", email: "contacto@granimperial.com", imagenes: [] }
-;
-
-const reviewsHardcoded = [
-  {
-    _id: "1",
-    cliente: { nombre: "Marcelo López" },
-    calificacion: 5,
-    comentario: "Excelente servicio, todo perfecto. El salón estaba impecable y el personal muy atento.",
-    createdAt: "2023-10-15T14:32:00.000Z"
-  },
-  {
-    _id: "2",
-    cliente: { nombre: "Ana Martínez" },
-    calificacion: 4.5,
-    comentario: "Muy buen lugar, solo que faltaron algunos utensilios en la cocina. Por lo demás todo excelente.",
-    createdAt: "2023-11-02T09:15:00.000Z"
-  },
-  {
-    _id: "3",
-    cliente: { nombre: "Carlos Jiménez" },
-    calificacion: 3,
-    comentario: "El salón es bonito pero el aire acondicionado no funcionaba bien. Precio acorde a lo ofrecido.",
-    createdAt: "2023-11-18T16:45:00.000Z"
-  },
-  {
-    _id: "4",
-    cliente: { nombre: "Laura García" },
-    calificacion: 5,
-    comentario: "¡Increíble experiencia! Lo usamos para nuestra boda y todo salió perfecto. Altamente recomendado.",
-    createdAt: "2023-12-05T12:20:00.000Z"
-  },
-  {
-    _id: "5",
-    cliente: { nombre: "Roberto Sánchez" },
-    calificacion: 2.5,
-    comentario: "El lugar estaba sucio cuando llegamos. Tuvieron que limpiarlo mientras esperábamos. Buen espacio pero mala primera impresión.",
-    createdAt: "2023-12-20T18:30:00.000Z"
-  },
-  {
-    _id: "6",
-    cliente: { nombre: "Sofía Ramírez" },
-    calificacion: 4,
-    comentario: "Bonito salón, buena ubicación. El servicio de catering que recomendaron fue excelente.",
-    createdAt: "2024-01-08T11:10:00.000Z"
-  },
-  {
-    _id: "7",
-    cliente: { nombre: "Jorge Fernández" },
-    calificacion: 1,
-    comentario: "No cumplieron con lo acordado. El salón no era el que habíamos reservado según las fotos.",
-    createdAt: "2024-01-22T20:05:00.000Z"
-  },
-  {
-    _id: "8",
-    cliente: { nombre: "María González" },
-    calificacion: 5,
-    comentario: "Perfecto para nuestro evento corporativo. Excelente atención y flexibilidad para nuestros requerimientos.",
-    createdAt: "2024-02-10T15:40:00.000Z"
-  },
-  {
-    _id: "9",
-    cliente: { nombre: "David Torres" },
-    calificacion: 3.5,
-    comentario: "Buen salón pero el estacionamiento es complicado. Recomendaría mejorar esa parte.",
-    createdAt: "2024-02-28T13:25:00.000Z"
-  },
-  {
-    _id: "10",
-    cliente: { nombre: "Patricia Morales" },
-    calificacion: 4,
-    comentario: "Muy contentos con el servicio. Solo sugeriría actualizar el equipo de sonido, por lo demás todo bien.",
-    createdAt: "2024-03-15T19:50:00.000Z"
-  }
-];
-
 function DetalleSalonPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -101,28 +24,25 @@ function DetalleSalonPage() {
   const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        console.log("Fetching salon details...");
+        const salonResponse = await api.get(`/salones/${id}`);
+        setSalon(salonResponse.data);
 
-    setSalon(salonHardcoded);
-    setReviews(reviewsHardcoded)
-    // const fetchData = async () => {
-    //   try {
-    //     console.log("Fetching salon details...");
-    //     const salonResponse = await api.get(`/salones/${id}`);
-    //     setSalon(salonResponse.data);
+        console.log("Fetching reservations...");
+        const reservasResponse = await api.get(`/reservas/salon/${id}`);
+        setReservas(Array.isArray(reservasResponse.data) ? reservasResponse.data : []);
 
-    //     console.log("Fetching reservations...");
-    //     const reservasResponse = await api.get(`/reservas/salon/${id}`);
-    //     setReservas(Array.isArray(reservasResponse.data) ? reservasResponse.data : []);
-
-    //     console.log("Fetching reviews...");
-    //     const reviewsResponse = await api.get(`/reviews/${id}`);
-    //     setReviews(reviewsResponse.data);
-    //   } catch (error) {
-    //     console.error("❌ Error fetching data:", error);
-    //     setReservas([]);
-    //   }
-    // };
-    // fetchData();
+        console.log("Fetching reviews...");
+        const reviewsResponse = await api.get(`/reviews/${id}`);
+        setReviews(reviewsResponse.data);
+      } catch (error) {
+        console.error("❌ Error fetching data:", error);
+        setReservas([]);
+      }
+    };
+    fetchData();
   }, [id]);
 
   const openImageModal = (image) => {

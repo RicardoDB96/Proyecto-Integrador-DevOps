@@ -5,36 +5,6 @@ import { Container, Button, Alert, Row, Col, Card, Form, Carousel } from "react-
 import { FaCheckCircle, FaTimesCircle } from "react-icons/fa"; // Íconos
 import StarRating from "../components/Estrellas"
 
-const reservasHardcoded = [
-  {
-    _id: "1",
-    salon: { _id: "1", nombre: "Gran Salón Imperial", ubicacion: "CDMX", capacidad: 500, precio: 15000, calificacion: 4.5, telefono: "555-123-4567", email: "contacto@granimperial.com", imagenes: [] },
-    fecha: "2025-04-25",
-    estado: "pendiente",
-    cliente: {nombre:"Marcelo", email:"lorem@ipsum.com"},
-    total: 15000,
-    pagoRealizado: false
-  },
-  {
-    _id: "2",
-    salon: { _id: "2", nombre: "Salón Bella Vista", ubicacion: "Monterrey", capacidad: 300, precio: 12000, calificacion: 3.0, telefono: "812-987-6543", email: "info@bellavista.com", imagenes: [] },
-    fecha: "2025-04-17",
-    estado: "aprobada",
-    cliente: {nombre:"Marcelo", email:"lorem@ipsum.com"},
-    total: 12000,
-    pagoRealizado: false
-  },
-  {
-    _id: "3",
-    salon: { _id: "2", nombre: "Salón Bella Vista", ubicacion: "Monterrey", capacidad: 300, precio: 12000, calificacion: 3.0, telefono: "812-987-6543", email: "info@bellavista.com", imagenes: [] },
-    fecha: "2025-04-07",
-    estado: "rechazada",
-    cliente: {nombre:"Marcelo", email:"lorem@ipsum.com"},
-    total: 12000,
-    pagoRealizado: false
-  }
-];
-
 function AdminReservasPage() {
   const [reservas, setReservas] = useState([]);
   const navigate = useNavigate();
@@ -42,18 +12,17 @@ function AdminReservasPage() {
   const usuario = JSON.parse(localStorage.getItem("usuario"));
 
   useEffect(() => {
-    setReservas(reservasHardcoded)
-    // if (!token || usuario?.rol !== "admin") {
-    //   alert("Acceso denegado. Debes ser administrador.");
-    //   navigate("/");
-    //   return;
-    // }
+    if (!token || usuario?.rol !== "admin") {
+      alert("Acceso denegado. Debes ser administrador.");
+      navigate("/");
+      return;
+    }
 
-    // api.get("/reservas", {
-    //   headers: { Authorization: `Bearer ${token}` }
-    // })
-    // .then(response => setReservas(response.data))
-    // .catch(error => console.error("Error al obtener reservas:", error));
+    api.get("/reservas", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(response => setReservas(response.data))
+    .catch(error => console.error("Error al obtener reservas:", error));
   }, [token, usuario, navigate]);
 
   const actualizarEstadoReserva = async (id, estado) => {

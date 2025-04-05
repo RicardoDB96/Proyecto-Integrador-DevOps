@@ -4,40 +4,24 @@ import api from "../services/api";
 import { Container, Row, Col, Card, Button, Spinner, Carousel, Form } from "react-bootstrap";
 import StarRating from "../components/Estrellas"
 
-const salonesHardcoded = [
-  { _id: "1", nombre: "Gran Salón Imperial", ubicacion: "CDMX", capacidad: 500, precio: 15000, calificacion: 4.5, telefono: "555-123-4567", email: "contacto@granimperial.com", imagenes: [] },
-  { _id: "2", nombre: "Salón Bella Vista", ubicacion: "Monterrey", capacidad: 300, precio: 12000, calificacion: 3.0, telefono: "812-987-6543", email: "info@bellavista.com", imagenes: [] },
-  { _id: "3", nombre: "Eventos Elegance", ubicacion: "Guadalajara", capacidad: 400, precio: 18000, calificacion: 5.0, telefono: "33-4444-5555", email: "reservas@elegance.com", imagenes: [] },
-  { _id: "4", nombre: "Salón Crystal", ubicacion: "Cancún", capacidad: 250, precio: 10000, calificacion: 4.0, telefono: "998-223-3344", email: "contacto@crystalcancun.com", imagenes: [] },
-  { _id: "5", nombre: "Salón Real", ubicacion: "Querétaro", capacidad: 200, precio: 8500, calificacion: 3.5, telefono: "442-789-1011", email: "info@salonreal.com", imagenes: [] },
-  { _id: "6", nombre: "Palacio de Eventos", ubicacion: "León", capacidad: 600, precio: 20000, calificacion: 4.8, telefono: "477-555-6789", email: "contacto@palaciodeeventos.com", imagenes: [] },
-  { _id: "7", nombre: "Jardines del Sol", ubicacion: "CDMX", capacidad: 350, precio: 13000, calificacion: 4.0, telefono: "55-3333-2222", email: "info@jardinesdelsol.com", imagenes: [] },
-  { _id: "8", nombre: "Eventos Riviera", ubicacion: "Playa del Carmen", capacidad: 275, precio: 11000, calificacion: 4.2, telefono: "984-666-7777", email: "reservas@eventosriviera.com", imagenes: [] },
-  { _id: "9", nombre: "Salón Majestuoso", ubicacion: "CDMX", capacidad: 450, precio: 17000, calificacion: 2.8, telefono: "55-8888-9999", email: "contacto@salonmajestuoso.com", imagenes: [] },
-  { _id: "10", nombre: "Salón Diamante", ubicacion: "Monterrey", capacidad: 320, precio: 14000, calificacion: 3.7, telefono: "81-7777-6666", email: "info@salondiamante.com", imagenes: [] },
-];
-
 function SalonesPage() {
   const [salones, setSalones] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setSalones(salonesHardcoded);
-    setLoading(false);
-    
-    // const obtenerSalones = async () => {
-    //   try {
-    //     const response = await api.get("/salones");
-    //     console.log("📸 Imágenes recibidas:", response.data); // 🔹 Agregar este log
-    //     setSalones(response.data);
-    //   } catch (error) {
-    //     console.error("❌ Error al obtener los salones:", error);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
+  useEffect(() => {    
+    const obtenerSalones = async () => {
+      try {
+        const response = await api.get("/salones");
+        console.log("📸 Imágenes recibidas:", response.data); // 🔹 Agregar este log
+        setSalones(response.data);
+      } catch (error) {
+        console.error("❌ Error al obtener los salones:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // obtenerSalones();
+    obtenerSalones();
   }, []);
 
   const [filtros, setFiltros] = useState({
