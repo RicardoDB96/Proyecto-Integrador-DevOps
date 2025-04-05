@@ -47,8 +47,8 @@ jobs:
       # Descargar el archivo vars.yml para Ansible
       - name: Crear archivo vars.yml para Ansible
         run: |
-          echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" > ansible/vars.yml
-          echo "DOCKER_IMAGE_TAG=${{ github.sha }}" >> ansible/vars.yml
+          echo "DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}" > ansible/vars.yml
+          echo "DOCKER_IMAGE_TAG: ${{ github.sha }}" >> ansible/vars.yml
 
       # Configurar Ansible
       - name: Instalar Ansible
