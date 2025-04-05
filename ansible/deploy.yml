@@ -2,6 +2,7 @@
 - name: Desplegar aplicación web en EC2 con Docker y Nginx
   hosts: web
   remote_user: ubuntu # Ajustado para coincidir con el inventario
+  become: yes # Añadido para usar privilegios de root
   vars:
     docker_image_tag: "{{ DOCKER_IMAGE_TAG }}"
     docker_username: "{{ DOCKER_USERNAME }}"
