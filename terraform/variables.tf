@@ -2,6 +2,7 @@
 variable "project_id" {
   description = "AWS-Reservo"
   type        = string
+  default = "reservo"
 }
 
 variable "region" {

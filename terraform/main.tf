@@ -29,6 +29,7 @@ resource "aws_subnet" "subnet_2" {
 resource "aws_security_group" "general_sec_group" {
   name        = "general_security_group"
   description = "Allow SSH and HTTP traffic"
+  vpc_id = aws_vpc.main.id
 
   ingress {
     from_port   = 22
@@ -55,16 +56,16 @@ resource "aws_security_group" "general_sec_group" {
 # Crear un par de llaves SSH para acceder a la infraestructura
 resource "aws_key_pair" "default" {
   key_name   = "my-key-pair"
-  public_key = file("~/.ssh/terraform_github_actions.pub") # Ruta del archivo de la clave pública
+  public_key = file("${path.module}/id_rsa.pub") # Ruta relativa dentro de la carpeta del módulo de Terraform
 }
 
 # Crear una instancia EC2 de ejemplo (puedes configurarla más adelante según tus necesidades)
 resource "aws_instance" "example" {
-  ami           = "ami-0c55b159cbfafe1f0"  # Reemplaza con una imagen AMI válida para tu región
+  ami           = "ami-084568db4383264d4"  # Reemplaza con una imagen AMI válida para tu región
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.subnet_1.id
   key_name      = aws_key_pair.default.key_name
-  security_groups = ["general_security_group"]  # Cambio aquí: usa el nombre del grupo de seguridad
+  vpc_security_group_ids = [aws_security_group.general_sec_group.id]
 
   tags = {
     Name = "ExampleInstance"
@@ -73,7 +74,7 @@ resource "aws_instance" "example" {
 
 # Crear un Bucket S3 como ejemplo de almacenamiento
 resource "aws_s3_bucket" "example_bucket" {
-  bucket = "my-example-bucket-12345678"  # Asegúrate de que el nombre sea único
+  bucket = "my-reservo-project-bucket-4499796"  # Asegúrate de que el nombre sea único
   acl    = "private"  # Este valor sigue siendo válido, pero puedes usar políticas más detalladas si prefieres
 }
 

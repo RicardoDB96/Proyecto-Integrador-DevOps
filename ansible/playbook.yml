@@ -5,12 +5,42 @@
   vars:
     docker_image_tag: "{{ DOCKER_IMAGE_TAG }}"
   tasks:
+    - name: Verificar si Helm está instalado
+      command: helm version --short
+      register: helm_version
+      failed_when: helm_version.rc != 0
+      changed_when: false
+      ignore_errors: true
+
+    - name: Instalar Helm si no está instalado
+      apt:
+        name: helm
+        state: present
+      when: helm_version.rc != 0
+
+    - name: Verificar si kubectl está instalado
+      command: kubectl version --client=true --short
+      register: kubectl_version
+      failed_when: kubectl_version.rc != 0
+      changed_when: false
+      ignore_errors: true
+
+    - name: Instalar kubectl si no está instalado
+      apt:
+        name: kubectl
+        state: present
+      when: kubectl_version.rc != 0
+
     - name: Desplegar backend con Helm
       shell: |
         helm upgrade --install backend ./helm/backend \
           --namespace default \
           --set image.repository=${DOCKER_USERNAME}/mi-backend \
           --set image.tag={{ docker_image_tag }}
+      register: backend_deploy
+      retries: 3
+      delay: 10
+      until: backend_deploy.rc == 0
 
     - name: Desplegar frontend con Helm
       shell: |
@@ -18,12 +48,16 @@
           --namespace default \
           --set image.repository=${DOCKER_USERNAME}/mi-frontend \
           --set image.tag={{ docker_image_tag }}
+      register: frontend_deploy
+      retries: 3
+      delay: 10
+      until: frontend_deploy.rc == 0
 
     - name: Esperar a que los deployments estén listos
       shell: |
         kubectl rollout status deployment/frontend -n default
         kubectl rollout status deployment/backend -n default
       register: result
-      until: result.rc == 0
-      retries: 5
+      retries: 10
       delay: 30
+      until: result.rc == 0
