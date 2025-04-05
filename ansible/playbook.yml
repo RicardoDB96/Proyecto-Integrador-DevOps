@@ -69,8 +69,8 @@
 
     - name: Esperar a que los deployments estén listos
       shell: |
-        kubectl rollout status deployment/frontend -n default
-        kubectl rollout status deployment/backend -n default
+        kubectl rollout status deployment/frontend-frontend-chart -n default
+        kubectl rollout status deployment/backend-backend-chart -n default
       register: result
       retries: 10
       delay: 30
