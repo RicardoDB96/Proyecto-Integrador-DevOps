@@ -63,21 +63,14 @@ jobs:
         run: |
           echo "${{ secrets.BACKEND_ENV }}" > backend/.env
 
-      - name: Corregir permisos de .ssh
-        run: |
-          sudo chown -R runner:runner ~/.ssh
-          chmod 700 ~/.ssh
-
-      - name: Eliminar archivo id_rsa existente
-        run: rm -f ~/.ssh/id_rsa
-
       - name: Configurar SSH y convertir a PEM
         run: |
           sudo apt-get update
           sudo apt-get install -y openssh-client
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          ssh-keygen -p -m PEM -f ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keygen -p -m PEM -N "" -f ~/.ssh/id_rsa
           chmod 400 ~/.ssh/id_rsa
 
       - name: Crear archivo de inventario para Ansible
