@@ -1,10 +1,33 @@
 ---
-- name: Desplegar app con Helm en EKS
+- name: Desplegar app con Helm en Kubernetes (EKS)
   hosts: localhost
   connection: local
   vars:
     docker_image_tag: "{{ DOCKER_IMAGE_TAG }}"
+    aws_region: "us-east-1"  # Asegúrate de usar la región correcta
+    eks_cluster_name: "mi-cluster-eks"  # Nombre del clúster EKS
   tasks:
+    - name: Configurar AWS CLI (proporcionando credenciales manualmente)
+      shell: |
+        aws configure set aws_access_key_id {{ lookup('env', 'AWS_ACCESS_KEY_ID') }}
+        aws configure set aws_secret_access_key {{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}
+        aws configure set region {{ aws_region }}
+
+    - name: Crear un clúster de EKS (si no existe)
+      shell: |
+        eksctl create cluster --name {{ eks_cluster_name }} --region {{ aws_region }} --nodes 3
+      register: eks_create_output
+      failed_when: eks_create_output.rc != 0
+      changed_when: true
+      ignore_errors: true
+
+    - name: Actualizar kubeconfig para acceder al clúster EKS
+      shell: |
+        aws eks --region {{ aws_region }} update-kubeconfig --name {{ eks_cluster_name }}
+      register: kubeconfig_update
+      failed_when: kubeconfig_update.rc != 0
+      changed_when: true
+
     - name: Verificar si Helm está instalado
       command: helm version --short
       register: helm_version

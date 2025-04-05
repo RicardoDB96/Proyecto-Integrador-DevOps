@@ -56,6 +56,12 @@ jobs:
           sudo apt update
           sudo apt install -y ansible
 
+      # Instalar eksctl
+      - name: Instalar eksctl
+        run: |
+          curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/v0.78.0/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/eksctl /usr/local/bin
+
       # Crear el archivo .env en backend con GitHub Secrets
       - name: Crear .env en backend
         run: |
