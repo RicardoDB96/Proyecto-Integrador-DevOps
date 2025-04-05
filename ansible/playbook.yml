@@ -4,6 +4,9 @@
   connection: local
   vars:
     docker_image_tag: "{{ DOCKER_IMAGE_TAG }}"
+    aws_access_key_id: "{{ AWS_ACCESS_KEY_ID }}"
+    aws_secret_access_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+    aws_session_token: "{{ AWS_SESSION_TOKEN }}"
     aws_region: "us-east-1"  # Asegúrate de usar la región correcta
     eks_cluster_name: "mi-cluster-eks"  # Nombre del clúster EKS
   tasks:
