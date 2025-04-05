@@ -60,12 +60,12 @@
       until: backend_deploy.rc == 0
 
     - name: Desplegar frontend con Helm
-        shell: |
-          cd .. && helm upgrade --install frontend ./kubernetes/frontend/frontend-chart --namespace default --set image.repository={{ docker_username }}/mi-frontend --set image.tag={{ docker_image_tag }}
-        register: frontend_deploy
-        retries: 3
-        delay: 10
-        until: frontend_deploy.rc == 0
+      shell: |
+        cd .. && helm upgrade --install frontend ./kubernetes/frontend/frontend-chart --namespace default --set image.repository={{ docker_username }}/mi-frontend --set image.tag={{ docker_image_tag }}
+      register: frontend_deploy
+      retries: 3
+      delay: 10
+      until: frontend_deploy.rc == 0
 
     - name: Esperar a que los deployments estén listos
       shell: |
