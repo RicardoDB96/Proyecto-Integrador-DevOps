@@ -89,7 +89,7 @@
 
     - name: Verificar estado del rollout del deployment backend
       shell: |
-        kubectl rollout status deployment/backend-backend -n default
+        kubectl rollout status deployment/backend-backend-chart -n default
       register: backend_rollout_status
       failed_when: backend_rollout_status.rc != 0
     - name: mostrar log de backend
