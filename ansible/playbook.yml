@@ -58,6 +58,7 @@
 
     - name: Desplegar backend con Helm
       shell: |
+        cd {{ playbook_dir }}/../ && \
         helm upgrade --install backend ./kubernetes/backend/backend-chart
           --namespace default \
           --set image.repository={{ docker_username }}/mi-backend \
@@ -69,6 +70,7 @@
 
     - name: Desplegar frontend con Helm
       shell: |
+        cd {{ playbook_dir }}/../ && \
         helm upgrade --install frontend ./kubernetes/frontend/frontend-chart
           --namespace default \
           --set image.repository={{ docker_username }}/mi-frontend \

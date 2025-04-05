@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-1"  # Cambia la región si es necesario
+  region = "us-east-1"
 }
 
 # Crear una VPC
@@ -25,6 +25,34 @@ resource "aws_subnet" "subnet_2" {
   map_public_ip_on_launch = true
 }
 
+# Crear una Internet Gateway
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+}
+
+# Crear una tabla de rutas para la subred pública
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+}
+
+# Crear una ruta que envíe el tráfico a la Internet Gateway
+resource "aws_route" "internet_access" {
+  route_table_id         = aws_route_table.public.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.main.id
+}
+
+# Asociar la tabla de rutas con la subred pública
+resource "aws_route_table_association" "subnet_1_association" {
+  subnet_id      = aws_subnet.subnet_1.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "subnet_2_association" {
+  subnet_id      = aws_subnet.subnet_2.id
+  route_table_id = aws_route_table.public.id
+}
+
 # Crear un Security Group básico para SSH y tráfico HTTP
 resource "aws_security_group" "general_sec_group" {
   name        = "general_security_group"
@@ -47,7 +75,7 @@ resource "aws_security_group" "general_sec_group" {
 
   egress {
     from_port   = 0
-    to_port     = 65535
+    to_port     = 0
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -59,7 +87,7 @@ resource "aws_key_pair" "default" {
   public_key = file("${path.module}/id_rsa.pub") # Ruta relativa dentro de la carpeta del módulo de Terraform
 }
 
-# Crear una instancia EC2 de ejemplo (puedes configurarla más adelante según tus necesidades)
+# Crear una instancia EC2 de ejemplo
 resource "aws_instance" "example" {
   ami           = "ami-084568db4383264d4"  # Reemplaza con una imagen AMI válida para tu región
   instance_type = "t2.micro"
@@ -75,7 +103,7 @@ resource "aws_instance" "example" {
 # Crear un Bucket S3 como ejemplo de almacenamiento
 resource "aws_s3_bucket" "example_bucket" {
   bucket = "my-reservo-project-bucket-4499796"  # Asegúrate de que el nombre sea único
-  acl    = "private"  # Este valor sigue siendo válido, pero puedes usar políticas más detalladas si prefieres
+  acl    = "private"
 }
 
 # Salidas
