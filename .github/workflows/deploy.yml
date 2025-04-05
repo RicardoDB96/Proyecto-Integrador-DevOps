@@ -79,15 +79,6 @@ jobs:
           echo "[all:vars]" >> ansible/inventory
           echo "ansible_python_interpreter=/usr/bin/python3" >> ansible/inventory
 
-      - name: Verificar contenido de vars.yml
-        run: cat ansible/vars.yml
-
-      - name: Verificar contenido de Inventario
-        run: cat ansible/inventory
-
-      - name: Debug SSH Private Key
-        run: echo "First 100 characters of SSH key: ${{ secrets.SSH_PRIVATE_KEY:0:100 }}"
-
       - name: Ejecutar Ansible Playbook
         run: |
           cd ansible
