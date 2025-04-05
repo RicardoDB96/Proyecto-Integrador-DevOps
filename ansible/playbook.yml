@@ -83,7 +83,7 @@
 
     - name: Verificar existencia del deployment backend
       shell: |
-        kubectl get deployment/backend-backend -n default
+        kubectl get deployment/backend-backend-chart -n default
       register: backend_deployment_exists
       failed_when: backend_deployment_exists.rc != 0
 
