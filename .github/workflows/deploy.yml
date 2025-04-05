@@ -76,7 +76,7 @@ jobs:
       - name: Crear archivo de inventario para Ansible
         run: |
           echo "[web]" > ansible/inventory
-          echo "ec2-instance ansible_host=${{ secrets.EC2_PUBLIC_IP }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa ssh_strict_host_key_checking=no" >> ansible/inventory
+          echo "ec2-instance ansible_host=${{ secrets.EC2_PUBLIC_IP }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/inventory
           echo "[all:vars]" >> ansible/inventory
           echo "ansible_python_interpreter=/usr/bin/python3" >> ansible/inventory
 
