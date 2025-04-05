@@ -11,12 +11,12 @@
     aws_region: "us-east-1"
     eks_cluster_name: "mi-cluster-eks"
   tasks:
-    - name: Configurar AWS CLI
-      amazon.aws.aws_configure:
-        aws_access_key: "{{ aws_access_key_id }}"
-        aws_secret_key: "{{ aws_secret_access_key }}"
-        aws_session_token: "{{ aws_session_token }}"
-        region: "{{ aws_region }}"
+    - name: Configurar AWS CLI (proporcionando credenciales manualmente)
+      shell: |
+        aws configure set aws_access_key_id {{ aws_access_key_id }}
+        aws configure set aws_secret_access_key {{ aws_secret_access_key }}
+        aws configure set aws_session_token {{ aws_session_token }}
+        aws configure set region {{ aws_region }}
 
     - name: Actualizar kubeconfig
       shell: |
