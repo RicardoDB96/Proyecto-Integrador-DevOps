@@ -51,7 +51,7 @@ jobs:
           echo "DOCKER_IMAGE_TAG: ${{ github.sha }}" >> ansible/vars.yml
           echo "AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}" >> ansible/vars.yml
           echo "AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> ansible/vars.yml
-          echo "AWS_SESSION_TOKEN": ${{ secrets.AWS_SESSION_TOKEN }}" >> ansible/vars.yml
+          echo "AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}" >> ansible/vars.yml
           echo "AWS_REGION: us-east-1" >> ansible/vars.yml
 
       # Configurar Ansible
