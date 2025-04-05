@@ -4,7 +4,7 @@ provider "aws" {
 
 # Crear una VPC
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = "10.10.0.0/16"
   enable_dns_support = true
   enable_dns_hostnames = true
 }
@@ -12,16 +12,8 @@ resource "aws_vpc" "main" {
 # Crear una Subnet 1 en la zona de disponibilidad us-east-1a
 resource "aws_subnet" "subnet_1" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
+  cidr_block              = "10.10.0.0/24"
   availability_zone       = "us-east-1a"
-  map_public_ip_on_launch = true
-}
-
-# Crear una Subnet 2 en la zona de disponibilidad us-east-1b
-resource "aws_subnet" "subnet_2" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = "us-east-1b"
   map_public_ip_on_launch = true
 }
 
@@ -48,11 +40,6 @@ resource "aws_route_table_association" "subnet_1_association" {
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_route_table_association" "subnet_2_association" {
-  subnet_id      = aws_subnet.subnet_2.id
-  route_table_id = aws_route_table.public.id
-}
-
 # Crear un Security Group básico para SSH y tráfico HTTP
 resource "aws_security_group" "general_sec_group" {
   name        = "general_security_group"
@@ -76,7 +63,7 @@ resource "aws_security_group" "general_sec_group" {
   egress {
     from_port   = 0
     to_port     = 0
-    protocol    = "tcp"
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
@@ -112,7 +99,7 @@ output "vpc_id" {
 }
 
 output "subnet_ids" {
-  value = [aws_subnet.subnet_1.id, aws_subnet.subnet_2.id]
+  value = [aws_subnet.subnet_1.id]
 }
 
 output "instance_public_ip" {

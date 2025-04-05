@@ -24,7 +24,7 @@
           }
   
           location / {
-              proxy_pass http://frontend:{{ frontend_port }};
+              proxy_pass http://frontend:{{ frontend_port }}; 
               proxy_set_header Host $host;
               proxy_set_header X-Real-IP $remote_addr;
           }
@@ -107,7 +107,7 @@
             nginx:
               image: nginx:latest
               ports:
-                - "80:80"
+                - "8081:80"
               volumes:
                 - "/home/{{ ansible_user }}/nginx-conf/nginx.conf:/etc/nginx/conf.d/default.conf"
               networks:
