@@ -76,6 +76,9 @@ jobs:
           echo "[all:vars]" >> ansible/inventory
           echo "ansible_python_interpreter=/usr/bin/python3" >> ansible/inventory
 
+      - name: Verificar contenido de vars.yml
+        run: cat ansible/vars.yml
+
       # Ejecutar playbook de Ansible
       - name: Ejecutar Ansible Playbook
         run: |
