@@ -1,0 +1,98 @@
+---
+- name: Desplegar app con Helm en Kubernetes (EKS)
+  hosts: localhost
+  connection: local
+  vars:
+    docker_image_tag: "{{ DOCKER_IMAGE_TAG }}"
+    docker_username: "{{ DOCKER_USERNAME }}"
+    aws_access_key_id: "{{ AWS_ACCESS_KEY_ID }}"
+    aws_secret_access_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+    aws_session_token: "{{ AWS_SESSION_TOKEN }}"
+    aws_region: "us-east-1"
+    eks_cluster_name: "mi-cluster-eks"
+    namespace: "default" # Define el namespace como una variable
+    frontend_port: 80
+    backend_port: 8080
+    nginx_conf: |
+      server {
+          listen 80;
+          server_name {{ ansible_host }};
+
+          location / {
+              proxy_pass http://frontend:{{ frontend_port }};
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+          }
+
+          location /api/ {
+              proxy_pass http://backend:{{ backend_port }}/;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+          }
+      }
+  tasks:
+
+    - name: Actualizar paquetes
+      apt:
+        name: "*"
+        state: latest
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Instalar Docker
+      apt:
+        name: docker.io
+        state: present
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Instalar Docker Compose
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-{{ ansible_system }}-{{ ansible_machine }}"
+        dest: /usr/local/bin/docker-compose
+        mode: "0755"
+
+    - name: Iniciar servicio Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Agregar usuario al grupo Docker
+      user:
+        name: "{{ ansible_user }}"
+        append: yes
+        groups: docker
+
+    - name: Crear directorio para Nginx config
+      file:
+        path: /home/{{ ansible_user }}/nginx-conf
+        state: directory
+
+    - name: Copiar archivo de configuración de Nginx
+      copy:
+        content: "{{ nginx_conf }}"
+        dest: /home/{{ ansible_user }}/nginx-conf/nginx.conf
+
+    - name: Desplegar aplicación con Docker Compose
+      docker_compose:
+        project_src: /home/{{ ansible_user }}
+        definition:
+          version: "3.8"
+          services:
+            frontend:
+              image: "{{ docker_username }}/mi-frontend:{{ docker_image_tag }}"
+              ports:
+                - "{{ frontend_port }}"
+            backend:
+              image: "{{ docker_username }}/mi-backend:{{ docker_image_tag }}"
+              ports:
+                - "{{ backend_port }}"
+            nginx:
+              image: nginx:latest
+              ports:
+                - "80:80"
+              volumes:
+                - "./nginx-conf/nginx.conf:/etc/nginx/conf.d/default.conf"
+              depends_on:
+                - frontend
+                - backend
+        state: present
