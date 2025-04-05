@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ .Release.Name }}-backend
 spec:
-  type: LoadBalancer  # ✅ Asegura que se usa LoadBalancer
+  type: {{ .Values.service.type }} # Usa el tipo definido en values.yaml
   selector:
     app: backend
   ports:

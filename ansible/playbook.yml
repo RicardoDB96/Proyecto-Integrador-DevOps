@@ -8,57 +8,37 @@
     aws_access_key_id: "{{ AWS_ACCESS_KEY_ID }}"
     aws_secret_access_key: "{{ AWS_SECRET_ACCESS_KEY }}"
     aws_session_token: "{{ AWS_SESSION_TOKEN }}"
-    aws_region: "us-east-1"  # Asegúrate de usar la región correcta
-    eks_cluster_name: "mi-cluster-eks"  # Nombre del clúster EKS
+    aws_region: "us-east-1"
+    eks_cluster_name: "mi-cluster-eks"
   tasks:
-    - name: Configurar AWS CLI (proporcionando credenciales manualmente)
-      shell: |
-        aws configure set aws_access_key_id {{ aws_access_key_id }}
-        aws configure set aws_secret_access_key {{ aws_secret_access_key }}
-        aws configure set aws_session_token {{ aws_session_token }}
-        aws configure set region {{ aws_region }}
+    - name: Configurar AWS CLI
+      amazon.aws.aws_configure:
+        aws_access_key: "{{ aws_access_key_id }}"
+        aws_secret_key: "{{ aws_secret_access_key }}"
+        aws_session_token: "{{ aws_session_token }}"
+        region: "{{ aws_region }}"
 
-    - name: Actualizar kubeconfig para acceder al clúster EKS
+    - name: Actualizar kubeconfig
       shell: |
         aws eks --region {{ aws_region }} update-kubeconfig --name {{ eks_cluster_name }}
       register: kubeconfig_update
       failed_when: kubeconfig_update.rc != 0
       changed_when: true
-
-    - name: Verificar si Helm está instalado
-      command: helm version --short
-      register: helm_version
-      failed_when: helm_version.rc != 0
-      changed_when: false
-      ignore_errors: true
-
-    - name: Instalar Helm si no está instalado
-      apt:
-        name: helm
-        state: present
-      when: helm_version.rc != 0
-
-    - name: Verificar si kubectl está instalado
-      command: kubectl version --client=true
-      register: kubectl_version
-      failed_when: kubectl_version.rc != 0
-      changed_when: false
-      ignore_errors: true
-
-    - name: Instalar kubectl si no está instalado
-      apt:
-        name: kubectl
-        state: present
-      when: kubectl_version.rc != 0
-
+    # ... (resto de los pasos de instalación de Helm y kubectl) ...
     - name: Desplegar backend con Helm
       shell: |
-            cd .. && helm upgrade --install backend ./kubernetes/backend/backend-chart --namespace default --set image.repository={{ docker_username }}/mi-backend --set image.tag={{ docker_image_tag }}
+        cd .. && helm upgrade --install backend ./kubernetes/backend/backend-chart --namespace default --set image.repository={{ docker_username }}/mi-backend --set image.tag={{ docker_image_tag }}
       register: backend_deploy
       retries: 3
       delay: 10
       until: backend_deploy.rc == 0
-
+    - name: mostrar log de helm backend
+      debug:
+        msg: "{{ backend_deploy }}"
+    - name: Verificar si hubo errores en la instalación del chart backend
+      fail:
+        msg: "Error en la instalación del chart backend"
+      when: backend_deploy.rc != 0
     - name: Desplegar frontend con Helm
       shell: |
         cd .. && helm upgrade --install frontend ./kubernetes/frontend/frontend-chart --namespace default --set image.repository={{ docker_username }}/mi-frontend --set image.tag={{ docker_image_tag }}
@@ -66,12 +46,31 @@
       retries: 3
       delay: 10
       until: frontend_deploy.rc == 0
-
-    - name: Esperar a que los deployments estén listos
+    - name: mostrar log de helm frontend
+      debug:
+        msg: "{{ frontend_deploy }}"
+    - name: Verificar si hubo errores en la instalación del chart frontend
+      fail:
+        msg: "Error en la instalación del chart frontend"
+      when: frontend_deploy.rc != 0
+    - name: Verificar existencia del deployment backend
+      shell: |
+        kubectl get deployment/backend-backend-chart -n default
+      register: backend_deployment_exists
+      failed_when: backend_deployment_exists.rc != 0
+    - name: Verificar estado del rollout del deployment backend
+      shell: |
+        kubectl rollout status deployment/backend-backend-chart -n default
+      register: backend_rollout_status
+      failed_when: backend_rollout_status.rc != 0
+    - name: mostrar log de backend
+      debug:
+        msg: "{{ backend_rollout_status }}"
+    - name: Verificar estado del rollout del deployment frontend
       shell: |
         kubectl rollout status deployment/frontend-frontend-chart -n default
-        kubectl rollout status deployment/backend-backend-chart -n default
-      register: result
-      retries: 10
-      delay: 30
-      until: result.rc == 0
+      register: frontend_rollout_status
+      failed_when: frontend_rollout_status.rc != 0
+    - name: mostrar log de frontend
+      debug:
+        msg: "{{ frontend_rollout_status }}"

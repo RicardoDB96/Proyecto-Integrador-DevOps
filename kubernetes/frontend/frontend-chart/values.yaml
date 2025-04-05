@@ -1,4 +1,3 @@
-#Reservo/kubernetes/frontend/frontend-chart/values.yaml
 replicaCount: 1
 
 image:
@@ -7,8 +6,8 @@ image:
   pullPolicy: Always
 
 service:
-  type: LoadBalancer
-  port: 80  # 🔹 Asegurar que este valor esté definido
+  type: ClusterIP #Cambio de LoadBalancer a ClusterIP
+  port: 80
 
 ingress:
   enabled: true
