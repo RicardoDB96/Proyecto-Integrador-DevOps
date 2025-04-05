@@ -39,7 +39,7 @@
       when: helm_version.rc != 0
 
     - name: Verificar si kubectl está instalado
-      command: kubectl version --client=true --short
+      command: kubectl version --client=true
       register: kubectl_version
       failed_when: kubectl_version.rc != 0
       changed_when: false
@@ -53,7 +53,7 @@
 
     - name: Desplegar backend con Helm
       shell: |
-        helm upgrade --install backend ./helm/backend \
+        helm upgrade --install backend ./kubernetes/backend/backend-chart \
           --namespace default \
           --set image.repository={{ docker_username }}/mi-backend \
           --set image.tag={{ docker_image_tag }}
@@ -64,7 +64,7 @@
 
     - name: Desplegar frontend con Helm
       shell: |
-        helm upgrade --install frontend ./helm/frontend \
+        helm upgrade --install frontend ./kubernetes/frontend/frontend-chart \
           --namespace default \
           --set image.repository={{ docker_username }}/mi-frontend \
           --set image.tag={{ docker_image_tag }}
