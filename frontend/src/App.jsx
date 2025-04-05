@@ -51,7 +51,6 @@ function App() {
               <Nav.Link as={Link} to="/">Inicio</Nav.Link>
               <Nav.Link as={Link} to="/salones">Salones</Nav.Link>
               <Nav.Link as={Link} to="/reservas">Reservas</Nav.Link>
-              <Nav.Link as={Link} to="/admin/reservas">Admin Reservas</Nav.Link>
             </Nav>
 
             <Nav>
