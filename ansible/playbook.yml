@@ -61,6 +61,7 @@
 
     - name: Desplegar frontend con Helm
       shell: |
+        cd ..
         helm upgrade --install frontend ./kubernetes/frontend/frontend-chart
           --namespace default \
           --set image.repository={{ docker_username }}/mi-frontend \
