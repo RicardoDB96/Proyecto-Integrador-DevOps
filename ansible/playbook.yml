@@ -6,12 +6,22 @@
     docker_image_tag: "{{ DOCKER_IMAGE_TAG }}"
     aws_region: "us-east-1"  # Asegúrate de usar la región correcta
     eks_cluster_name: "mi-cluster-eks"  # Nombre del clúster EKS
+    aws_access_key_id: "{{ AWS_ACCESS_KEY_ID }}"
+    aws_secret_access_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+    aws_session_token: "{{ AWS_SESSION_TOKEN }}"
+
   tasks:
     - name: Configurar AWS CLI (proporcionando credenciales manualmente)
       shell: |
-        aws configure set aws_access_key_id {{ lookup('env', 'AWS_ACCESS_KEY_ID') }}
-        aws configure set aws_secret_access_key {{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}
+        aws configure set aws_access_key_id {{ aws_access_key_id }}
+        aws configure set aws_secret_access_key {{ aws_secret_access_key }}
+        aws configure set aws_session_token {{ aws_session_token }}
         aws configure set region {{ aws_region }}
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ aws_access_key_id }}"
+        AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key }}"
+        AWS_SESSION_TOKEN: "{{ aws_session_token }}"
+        AWS_REGION: "{{ aws_region }}"
 
     - name: Crear un clúster de EKS (si no existe)
       shell: |
