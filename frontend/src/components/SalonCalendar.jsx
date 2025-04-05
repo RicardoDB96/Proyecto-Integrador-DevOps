@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import { Container, Card, Button, Row, Col } from "react-bootstrap";
+import { Container, Button, Row, Col } from "react-bootstrap";
 
 function SalonCalendar({ reservas, setSelectedDate, selectedDate, handleReserva }) {
   useEffect(() => {
@@ -50,15 +50,11 @@ function SalonCalendar({ reservas, setSelectedDate, selectedDate, handleReserva 
   };
 
   return (
-    <Container className="mt-4">
-      <Card className="p-4 shadow-lg">
-        <h3 className="text-center">📅 Disponibilidad del Salón</h3>
-        <br></br>
-        <br></br>
+    <Container>
         {/* Responsive Layout using Bootstrap Grid */}
         <Row className="align-items-center">
           {/* Calendar Column */}
-          <Col xs={12} md={8} className="d-flex justify-content-center">
+          <Col xs={12} className="d-flex justify-content-center">
             <Calendar 
               onChange={handleDateChange} 
               value={selectedDate || new Date()} 
@@ -68,7 +64,7 @@ function SalonCalendar({ reservas, setSelectedDate, selectedDate, handleReserva 
           </Col>
 
           {/* Reservation Details and Button Column */}
-          <Col xs={12} md={4} className="text-center mt-3 mt-md-0">
+          <Col xs={12} className="text-center mt-3">
             {selectedDate && (
               <>
                 <p className="mb-3">
@@ -103,7 +99,6 @@ function SalonCalendar({ reservas, setSelectedDate, selectedDate, handleReserva 
             </Col>
           </Row>
         </div>
-      </Card>
 
       {/* CSS Styles for Calendar */}
       <style>
