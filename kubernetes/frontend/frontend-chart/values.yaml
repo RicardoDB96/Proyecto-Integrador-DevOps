@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  repository: fairoox94/mi-frontend
+  repository: ricardodb/mi-frontend
   tag: "latest"
   pullPolicy: Always
 
