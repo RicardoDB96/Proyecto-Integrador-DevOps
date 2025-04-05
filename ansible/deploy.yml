@@ -72,9 +72,9 @@
         content: "{{ nginx_conf }}"
         dest: /home/{{ ansible_user }}/nginx-conf/nginx.conf
 
-    - name: Desplegar aplicación con Docker Compose
-      docker_compose:
-        project_src: /home/{{ ansible_user }}
+    - name: Desplegar aplicación con Docker Compose v2 # Nombre de la tarea cambiado
+      community.docker.docker_compose_v2: # Modulo correcto
+        project_src: /home/ubuntu # Ajustado para coincidir con el usuario
         definition:
           version: "3.8"
           services:
