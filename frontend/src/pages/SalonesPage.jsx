@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
 import { Container, Row, Col, Card, Button, Spinner, Carousel, Form } from "react-bootstrap";
-import { FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa"; // Asegúrate de tener estos íconos importados
+import StarRating from "../components/Estrellas"
 
 const salonesHardcoded = [
   { _id: "1", nombre: "Gran Salón Imperial", ubicacion: "CDMX", capacidad: 500, precio: 15000, calificacion: 4.5, telefono: "555-123-4567", email: "contacto@granimperial.com", imagenes: [] },
@@ -17,24 +17,28 @@ const salonesHardcoded = [
   { _id: "10", nombre: "Salón Diamante", ubicacion: "Monterrey", capacidad: 320, precio: 14000, calificacion: 3.7, telefono: "81-7777-6666", email: "info@salondiamante.com", imagenes: [] },
 ];
 
-
-function renderStars(calificacion) {
-  const fullStars = Math.floor(calificacion);
-  const halfStar = calificacion % 1 >= 0.5 ? 1 : 0;
-  const emptyStars = 5 - fullStars - halfStar;
-
-  return (
-    <>
-      {Array(fullStars).fill(<FaStar className="text-warning" />)}
-      {halfStar === 1 && <FaStarHalfAlt className="text-warning" />}
-      {Array(emptyStars).fill(<FaRegStar className="text-warning" />)}
-    </>
-  );
-}
-
 function SalonesPage() {
   const [salones, setSalones] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setSalones(salonesHardcoded);
+    setLoading(false);
+    
+    // const obtenerSalones = async () => {
+    //   try {
+    //     const response = await api.get("/salones");
+    //     console.log("📸 Imágenes recibidas:", response.data); // 🔹 Agregar este log
+    //     setSalones(response.data);
+    //   } catch (error) {
+    //     console.error("❌ Error al obtener los salones:", error);
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // };
+
+    // obtenerSalones();
+  }, []);
 
   const [filtros, setFiltros] = useState({
     nombre: "",
@@ -45,24 +49,8 @@ function SalonesPage() {
 
   const quitarAcentos = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  useEffect(() => {
-    const obtenerSalones = async () => {
-      try {
-        const response = await api.get("/salones");
-        setSalones(response.data.length > 0 ? response.data : salonesHardcoded);
-      } catch (error) {
-        console.error("❌ Error al obtener los salones:", error);
-        setSalones(salonesHardcoded); //Testing Only
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    obtenerSalones();
-  }, []);
-
-  const capacidadMin = Math.min(...salones.map((s) => s.capacidad), 100);
-  const capacidadMax = Math.max(...salones.map((s) => s.capacidad), 600);
+  const capacidadMin = Math.min(...salones.map((s) => s.capacidad));
+  const capacidadMax = Math.max(...salones.map((s) => s.capacidad));
 
   const salonesFiltrados = salones.filter((salon) => {
     return (
@@ -75,7 +63,7 @@ function SalonesPage() {
 
   return (
     <Container className="py-5">
-      <h1 className="text-center mb-4">🏛️ Salones Disponibles</h1>
+      <h1 className="text-center">🏛️ Salones Disponibles</h1>
 
       <Row>
         <Col md={3}>
@@ -139,17 +127,33 @@ function SalonesPage() {
                 <Col xs={12} key={salon._id}>
                   <Card className="shadow-sm border-1">
                     <Row className="g-0">
+                      
                       <Col md={4} className="d-flex align-items-center">
+                      {salon.imagenes && salon.imagenes.length > 0 ? (
+                        <Carousel className="w-100">
+                          {salon.imagenes.map((imagen, index) => (
+                            <Carousel.Item key={index}>
+                              <img
+                                src={imagen} // ✅ Ahora carga desde GCS
+                                alt={`Imagen ${index + 1}`}
+                                className="rounded-start w-100"
+                                style={{ height: "250px", objectFit: "cover" }}
+                                onError={(e) => (e.target.style.display = "none")} // Oculta si hay error
+                              />
+                            </Carousel.Item>
+                          ))}
+                        </Carousel>
+                      ) : (
                         <div className="d-flex justify-content-center align-items-center bg-light" style={{ height: "250px", width: "100%" }}>
                           <p className="text-muted">Sin imagen</p>
                         </div>
+                      )}
                       </Col>
 
                       <Col md={8}>
-            
                           <Row>
                             <Col md={8}>
-                              <Card.Body className="d-flex flex-column justify-content-between" style={{ height: "100%" }}>
+                              <Card.Body className="d-flex flex-column" style={{ height: "100%" }}>
                                 <Card.Title className="fw-bold fs-3">{salon.nombre}</Card.Title>
                                 <Card.Text>
                                   📍 <strong>Ubicación:</strong> {salon.ubicacion} <br />
@@ -160,19 +164,17 @@ function SalonesPage() {
                               </Card.Body>
                             </Col>
                             <Col md={4}>
-                            <Card.Body className="d-flex flex-column" style={{ height: "100%" }}>
-                              <Card.Title className="fw-bold fs-4 text-end">${salon.precio.toLocaleString("es-MX")}</Card.Title>
-                              <div className="d-flex justify-content-end">
-                                {renderStars(salon.calificacion)} {/* Mostrar estrellas */}
-                              </div>
-                              <Button as={Link} to={`/salones/${salon._id}`} variant="success" className="mt-auto position-absolute bottom-0 end-0 mb-3 me-3">
-                              Ver Detalles
-                            </Button>
-                            </Card.Body>
+                              <Card.Body className="d-flex flex-column" style={{ height: "100%" }}>
+                                <Card.Title className="fw-bold fs-4 text-end">${salon.precio.toLocaleString("es-MX")}</Card.Title>
+                                <div className="d-flex justify-content-end"><StarRating rating={salon.calificacion} size={20} /></div>
+                                <Button as={Link} to={`/salones/${salon._id}`} variant="success" className="mt-auto position-absolute bottom-0 end-0 mb-3 me-3">
+                                Ver Detalles
+                                </Button>
+                              </Card.Body>
                             </Col>
                           </Row>
-                        
                       </Col>
+
                     </Row>
                   </Card>
                 </Col>
