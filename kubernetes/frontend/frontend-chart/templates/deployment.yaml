@@ -25,7 +25,14 @@ spec:
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d/default.conf
-              subPath: default.conf  # ✅ Se monta correctamente en conf.d
+              subPath: default.conf
+          resources: #Ajuste para agregar recursos.
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
       volumes:
         - name: nginx-config
           configMap:

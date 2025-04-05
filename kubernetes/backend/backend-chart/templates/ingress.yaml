@@ -14,6 +14,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: backend-release-backend
+                name: {{ .Release.Name }}-backend #Nombre ajustado para que coincida con service.yaml
                 port:
                   number: 5000
