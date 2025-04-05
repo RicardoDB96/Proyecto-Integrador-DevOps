@@ -1,7 +1,8 @@
 ---
 - name: Desplegar aplicación web en EC2 con Docker y Nginx
   hosts: web
-  remote_user: ubuntu # Ajustado para coincidir con el inventario
+  remote_user: ubuntu
+  become: true
   vars:
     docker_image_tag: "{{ DOCKER_IMAGE_TAG }}"
     docker_username: "{{ DOCKER_USERNAME }}"
@@ -10,7 +11,7 @@
     aws_session_token: "{{ AWS_SESSION_TOKEN }}"
     aws_region: "us-east-1"
     eks_cluster_name: "mi-cluster-eks"
-    namespace: "default" # Define el namespace como una variable
+    namespace: "default"
     frontend_port: 80
     backend_port: 8080
     nginx_conf: |
@@ -30,8 +31,8 @@
               proxy_set_header X-Real-IP $remote_addr;
           }
       }
-  tasks:
 
+  tasks:
     - name: Actualizar paquetes
       apt:
         name: "*"
@@ -66,15 +67,21 @@
       file:
         path: /home/{{ ansible_user }}/nginx-conf
         state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
 
     - name: Copiar archivo de configuración de Nginx
       copy:
         content: "{{ nginx_conf }}"
         dest: /home/{{ ansible_user }}/nginx-conf/nginx.conf
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
 
-    - name: Desplegar aplicación con Docker Compose v2 # Nombre de la tarea cambiado
-      community.docker.docker_compose_v2: # Modulo correcto
-        project_src: /home/ubuntu # Ajustado para coincidir con el usuario
+    - name: Desplegar aplicación con Docker Compose v2
+      community.docker.docker_compose_v2:
+        project_src: /home/{{ ansible_user }}
         definition:
           version: "3.8"
           services:
