@@ -16,6 +16,13 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Verificar el directorio de trabajo
+        run: |
+          echo "Directorio de trabajo actual:"
+          pwd
+          echo "Archivos en el directorio de trabajo:"
+          ls -R
+
       # Instalar dependencias y construir frontend y backend
       - name: Instalar dependencias y build
         run: |
