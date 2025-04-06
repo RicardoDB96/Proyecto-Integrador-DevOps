@@ -1,0 +1,28 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main  # El flujo se ejecuta cuando hay un push a la rama principal
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Paso 1: Checkout del código del repositorio
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Paso 2: Obtener secreto desde Vault
+      - name: Obtener secreto desde Vault
+        run: |
+          # Establecer las variables de entorno desde GitHub Secrets
+          VAULT_TOKEN=${{ secrets.VAULT_TOKEN }}  # Configurado en GitHub Secrets
+          VAULT_ADDR=http://$VAULT_ADDR:8200  # Utilizar el secreto configurado en GitHub Secrets para la IP
+
+          # Obtener el secreto desde Vault
+          SECRET=$(curl --header "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/data/github_token | jq -r .data.data.token)
+
+          # Almacenar el secreto en el entorno de GitHub para que esté disponible en pasos posteriores
+          echo "TOKEN_GITHUB=$SECRET" >> $GITHUB_ENV
