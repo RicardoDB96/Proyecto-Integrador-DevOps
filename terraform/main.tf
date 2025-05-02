@@ -89,7 +89,7 @@ resource "aws_instance" "example" {
 
 # Crear un Bucket S3 como ejemplo de almacenamiento
 resource "aws_s3_bucket" "example_bucket" {
-  bucket = "my-reservo-project-bucket-4499796"  # Asegúrate de que el nombre sea único
+  bucket = "my-reservo-project-bucket-44997969"  # Asegúrate de que el nombre sea único
   acl    = "private"
 }
 
