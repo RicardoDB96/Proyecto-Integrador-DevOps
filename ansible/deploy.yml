@@ -98,7 +98,7 @@
             backend:
               image: "{{ docker_username }}/mi-backend:{{ docker_image_tag }}"
               ports:
-                - "{{ backend_port }}:8080"
+                - "{{ backend_port }}:5000"
               networks:
                 - reservo_net
               env_file:
