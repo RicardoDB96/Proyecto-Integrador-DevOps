@@ -14,7 +14,7 @@ RUN npm install --omit=dev
 COPY . .
 
 # Exponer el puerto en el que corre la aplicación (ajusta si es necesario)
-EXPOSE 8080
+EXPOSE 5000
 
 # Especificar la variable de entorno para producción
 ENV NODE_ENV=production
