@@ -22,6 +22,10 @@ const reservaRoutes = require("./routes/reserva");
 const reviewRoutes = require("./routes/reviews");
 const pagosRoutes = require("./routes/pagos");
 
+const serviciosRoutes = require("./routes/servicios");
+
+app.use("/api/salones", require("./routes/salones"));
+app.use("/api/servicios", serviciosRoutes);
 app.use("/api/pagos", pagosRoutes);
 app.use("/api/salones", salonRoutes);
 app.use("/api/auth", authRoutes);

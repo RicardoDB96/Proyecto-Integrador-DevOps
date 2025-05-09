@@ -79,9 +79,9 @@ router.post("/register", async (req, res) => {
 
     res.status(201).json({ mensaje: "Usuario registrado correctamente", usuario: newUser });
 
-  } catch (error) {
-    console.error("❌ ERROR EN EL REGISTRO:", error);
-    res.status(500).json({ mensaje: "Error interno del servidor", error });
+  } catch (err) {
+    console.error('Error en register:', err);
+    return res.status(400).json({ message: err.message });
   }
 });
 

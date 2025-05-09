@@ -7,7 +7,7 @@ import { Container, Form, Button, Alert, Card, Spinner } from "react-bootstrap";
 function RegisterPage() {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState(""); // ✅ New field
+  const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,26 +15,37 @@ function RegisterPage() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setLoading(true); // Show loading spinner
+    setLoading(true);
+    setMensaje(""); // Limpiar mensaje previo
 
     try {
-      const response = await api.post("/auth/register", {
+      const { data } = await api.post("/auth/register", {
         nombre,
         email,
-        telefono, // ✅ Send phone number
+        telefono,
         password,
       });
 
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("usuario", JSON.stringify(response.data.usuario));
+      // Si tu backend devuelve un token lo guardamos
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("usuario", JSON.stringify(data.usuario));
+      } else {
+        console.warn("No se recibió token en register:", data);
+      }
 
       setMensaje("✅ Registro exitoso. Redirigiendo...");
-
       setTimeout(() => {
-        window.location.href = "/"; // 🔄 Refresh to update user state
+        window.location.href = "/";
       }, 1000);
     } catch (error) {
-      setMensaje("❌ Error al registrarse. Verifica los datos.");
+      // Extraemos mensaje de 'message' o de 'mensaje' según tu backend
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.mensaje ||
+        error.message ||
+        "❌ Error al registrarse.";
+      setMensaje(msg);
     } finally {
       setLoading(false);
     }
@@ -46,27 +57,53 @@ function RegisterPage() {
         <h2 className="text-center mb-3">📝 Registro</h2>
         <p className="text-muted text-center">Crea una cuenta para comenzar</p>
 
-        {mensaje && <Alert variant={mensaje.includes("Error") ? "danger" : "success"}>{mensaje}</Alert>}
+        {mensaje && (
+          <Alert variant={mensaje.startsWith("❌") ? "danger" : "success"}>
+            {mensaje}
+          </Alert>
+        )}
 
         <Form onSubmit={handleRegister}>
           <Form.Group className="mb-3">
             <Form.Label>🙍 Nombre</Form.Label>
-            <Form.Control type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+            <Form.Control
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              required
+            />
           </Form.Group>
 
           <Form.Group className="mb-3">
             <Form.Label>📧 Correo Electrónico</Form.Label>
-            <Form.Control type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Form.Control
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </Form.Group>
 
           <Form.Group className="mb-3">
             <Form.Label>📞 Teléfono</Form.Label>
-            <Form.Control type="text" value={telefono} onChange={(e) => setTelefono(e.target.value)} pattern="\d{10}" required placeholder="Ejemplo: 5512345678" />
+            <Form.Control
+              type="text"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+              pattern="\d{10}"
+              placeholder="Ejemplo: 5512345678"
+              required
+            />
           </Form.Group>
 
           <Form.Group className="mb-3">
             <Form.Label>🔒 Contraseña</Form.Label>
-            <Form.Control type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Form.Control
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </Form.Group>
 
           <Button variant="success" type="submit" className="w-100" disabled={loading}>
