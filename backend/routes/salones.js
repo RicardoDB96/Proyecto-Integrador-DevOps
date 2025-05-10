@@ -1,49 +1,50 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const { Storage } = require("@google-cloud/storage");
+const AWS = require("aws-sdk");
+const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const Salon = require("../models/Salon");
 const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/roleMiddleware");
 
-const bucketName = "reservo-imagenes"; // 📌 Nombre del bucket en GCS
-
-// Configurar Google Cloud Storage
-const storage = new Storage({
-  keyFilename: path.resolve(__dirname, "../reservo-storage-key.json"),
+// Configurar AWS SDK con credenciales temporales (AWS Academy)
+AWS.config.update({
+  region: process.env.AWS_REGION,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  sessionToken: process.env.AWS_SESSION_TOKEN, // ← necesario en AWS Academy
 });
 
-const bucket = storage.bucket(bucketName);
+const s3 = new AWS.S3({ region: "us-east-1" });
+const bucketName = process.env.AWS_BUCKET_NAME; // ← asegúrate de definirlo en .env
 
-// Configurar Multer para almacenar archivos en memoria antes de subirlos a GCS
+// Multer para almacenar archivos en memoria
 const upload = multer({ storage: multer.memoryStorage() });
 
 /**
- * 📌 Subir archivo a Google Cloud Storage y obtener la URL pública.
+ * 📌 Subir archivo a Amazon S3
  */
-const uploadToGCS = async (file) => {
+const uploadToS3 = async (file) => {
   if (!file) throw new Error("No se subió ningún archivo.");
 
-  const filename = `${Date.now()}-${file.originalname}`;
-  const blob = bucket.file(filename);
-  const blobStream = blob.createWriteStream({
-    resumable: false,
-    public: true, // 📌 Hace la imagen accesible públicamente
-  });
+  const fileExtension = path.extname(file.originalname);
+  const filename = `${Date.now()}-${uuidv4()}${fileExtension}`;
 
-  return new Promise((resolve, reject) => {
-    blobStream.on("error", reject);
-    blobStream.on("finish", () => {
-      resolve(`https://storage.googleapis.com/${bucketName}/${filename}`);
-    });
-    blobStream.end(file.buffer);
-  });
+  const params = {
+    Bucket: bucketName,
+    Key: filename,
+    Body: file.buffer,
+    ContentType: file.mimetype,
+  };
+
+  const data = await s3.upload(params).promise();
+
+  return `https://${bucketName}.s3.amazonaws.com/${filename}`;
 };
 
-/**
- * 📌 Crear un nuevo salón con imágenes en GCS (Solo Admin)
- */
+// 👇 Resto de tus rutas (solo se cambió uploadToGCS → uploadToS3)
+
 router.post("/", authMiddleware, adminMiddleware, upload.array("imagenes", 10), async (req, res) => {
   try {
     const { nombre, ubicacion, capacidad, precio, descripcion, contacto, telefono, email } = req.body;
@@ -52,8 +53,7 @@ router.post("/", authMiddleware, adminMiddleware, upload.array("imagenes", 10), 
       return res.status(400).json({ mensaje: "El teléfono y el correo son obligatorios" });
     }
 
-    // Subir imágenes a GCS y obtener sus URLs
-    const imagenes = await Promise.all(req.files.map(uploadToGCS));
+    const imagenes = await Promise.all(req.files.map(uploadToS3));
 
     const nuevoSalon = new Salon({
       nombre,
@@ -61,7 +61,7 @@ router.post("/", authMiddleware, adminMiddleware, upload.array("imagenes", 10), 
       capacidad,
       precio,
       descripcion,
-      imagenes, // 📌 Guardamos las URLs de GCS en MongoDB
+      imagenes,
       contacto,
       telefono,
       email,
@@ -75,9 +75,6 @@ router.post("/", authMiddleware, adminMiddleware, upload.array("imagenes", 10), 
   }
 });
 
-/**
- * 📌 Obtener todos los salones
- */
 router.get("/", async (req, res) => {
   try {
     const salones = await Salon.find();
@@ -87,9 +84,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-/**
- * 📌 Obtener un solo salón por ID
- */
 router.get("/:id", async (req, res) => {
   try {
     const salon = await Salon.findById(req.params.id);
@@ -100,9 +94,6 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-/**
- * 📌 Actualizar un salón con imágenes en GCS (Solo Admin)
- */
 router.put("/:id", authMiddleware, adminMiddleware, upload.array("imagenes", 10), async (req, res) => {
   try {
     const { nombre, ubicacion, capacidad, precio, descripcion, contacto, telefono, email, imagenesExistentes } = req.body;
@@ -115,15 +106,11 @@ router.put("/:id", authMiddleware, adminMiddleware, upload.array("imagenes", 10)
     if (!salon) return res.status(404).json({ mensaje: "Salón no encontrado" });
 
     let imagenes = salon.imagenes;
+    if (imagenesExistentes) imagenes = JSON.parse(imagenesExistentes);
 
-    if (imagenesExistentes) {
-      imagenes = JSON.parse(imagenesExistentes);
-    }
-
-    // Subir nuevas imágenes a GCS
     if (req.files.length > 0) {
-      const newImages = await Promise.all(req.files.map(uploadToGCS));
-      imagenes = [...imagenes, ...newImages];
+      const nuevas = await Promise.all(req.files.map(uploadToS3));
+      imagenes = [...imagenes, ...nuevas];
     }
 
     const salonActualizado = await Salon.findByIdAndUpdate(
@@ -139,9 +126,6 @@ router.put("/:id", authMiddleware, adminMiddleware, upload.array("imagenes", 10)
   }
 });
 
-/**
- * 📌 Eliminar una imagen de GCS y de MongoDB
- */
 router.delete("/:id/imagen", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { imageUrl } = req.body;
@@ -150,12 +134,10 @@ router.delete("/:id/imagen", authMiddleware, adminMiddleware, async (req, res) =
     const salon = await Salon.findById(req.params.id);
     if (!salon) return res.status(404).json({ mensaje: "Salón no encontrado" });
 
-    // Eliminar imagen de GCS
-    const filename = imageUrl.split("/").pop();
-    await bucket.file(filename).delete();
+    const key = decodeURIComponent(imageUrl.split("/").pop());
+    await s3.deleteObject({ Bucket: bucketName, Key: key }).promise();
 
-    // Eliminar URL de la imagen de MongoDB
-    salon.imagenes = salon.imagenes.filter(img => img !== imageUrl);
+    salon.imagenes = salon.imagenes.filter((img) => img !== imageUrl);
     await salon.save();
 
     res.json({ mensaje: "Imagen eliminada correctamente", salon });
@@ -165,18 +147,14 @@ router.delete("/:id/imagen", authMiddleware, adminMiddleware, async (req, res) =
   }
 });
 
-/**
- * 📌 Eliminar un salón junto con sus imágenes en GCS (Solo Admin)
- */
 router.delete("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const salon = await Salon.findById(req.params.id);
     if (!salon) return res.status(404).json({ mensaje: "Salón no encontrado" });
 
-    // Eliminar imágenes del salón en GCS
     await Promise.all(salon.imagenes.map((imageUrl) => {
-      const filename = imageUrl.split("/").pop();
-      return bucket.file(filename).delete();
+      const key = decodeURIComponent(imageUrl.split("/").pop());
+      return s3.deleteObject({ Bucket: bucketName, Key: key }).promise();
     }));
 
     await Salon.findByIdAndDelete(req.params.id);
