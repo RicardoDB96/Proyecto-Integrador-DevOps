@@ -49,9 +49,7 @@ Para este proyecto se adoptan prácticas DevOps que brindan varios beneficios:
 - **Backend**: Node.js + Express
 - **Base de Datos**: MongoDB con Mongoose
 - **Frontend**: React, Tailwind CSS y Bootstrap
-- **Autenticación**: Bcrypt.js para cifrado de contraseñas
-- **Gestión de Multimedia**: Multer
-- **Cloud & Orquestación**: Google Cloud Platform (GCP), Google Kubernetes Engine (GKE)
+- **Cloud & Orquestación**: 
 
 ## GitHub Actions (CI/CD <a name="github-actions-cicd"></a>
 Se define una acción en .github/workflows/ci-cd.yml que se activa al hacer push en master:
