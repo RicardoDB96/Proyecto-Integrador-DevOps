@@ -1,12 +1,20 @@
+// AdminReservasPage.jsx
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { Container, Button, Alert, Row, Col, Card, Form, Carousel } from "react-bootstrap";
-import { FaCheckCircle, FaTimesCircle } from "react-icons/fa"; // Íconos
-import StarRating from "../components/Estrellas"
+import { Container, Button, Alert, Row, Col, Card, Form } from "react-bootstrap";
+import { FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import StarRating from "../components/Estrellas";
 
 function AdminReservasPage() {
   const [reservas, setReservas] = useState([]);
+  const [filtros, setFiltros] = useState({
+    nombreSalon: "",
+    nombreCliente: "",
+    estado: "",
+    fecha: ""
+  });
+
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const usuario = JSON.parse(localStorage.getItem("usuario"));
@@ -43,57 +51,108 @@ function AdminReservasPage() {
     }
   };
 
-  const [filtros, setFiltros] = useState({
-    nombreSalon: "",
-    nombreCliente: "",
-    estado: "",
-    fecha: ""
-  });
-
   const quitarAcentos = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  // Función para ordenar las reservas
   const ordenarReservas = (reservas) => {
     return [...reservas].sort((a, b) => {
-      // Primero ordenar por estado (pendientes primero)
       const ordenEstados = { pendiente: 1, aprobada: 2, rechazada: 3 };
       if (ordenEstados[a.estado] !== ordenEstados[b.estado]) {
         return ordenEstados[a.estado] - ordenEstados[b.estado];
       }
-      
-      // Luego ordenar por fecha (más nuevas primero)
       return new Date(b.fecha) - new Date(a.fecha);
     });
   };
 
-  // Filtrar y ordenar las reservas
   const reservasFiltrados = ordenarReservas(reservas.filter((reserva) => {
-    const fechaReserva = new Date(reserva.fecha).toLocaleDateString("es-MX", {timeZone: 'UTC'});
-    const fechaFiltro = filtros.fecha ? new Date(filtros.fecha).toLocaleDateString("es-MX", {timeZone: 'UTC'}) : "";
-    
+    const fechaReserva = new Date(reserva.fecha).toLocaleDateString("es-MX", { timeZone: 'UTC' });
+    const fechaFiltro = filtros.fecha ? new Date(filtros.fecha).toLocaleDateString("es-MX", { timeZone: 'UTC' }) : "";
+
     return (
-      (filtros.nombreSalon === "" || 
-        quitarAcentos(reserva.salon.nombre.toLowerCase()).includes(
-          quitarAcentos(filtros.nombreSalon.toLowerCase())
-        )) &&
-      (filtros.nombreCliente === "" || 
-        quitarAcentos(reserva.cliente.nombre.toLowerCase()).includes(
-          quitarAcentos(filtros.nombreCliente.toLowerCase())
-        )) &&
-      (filtros.estado === "" || 
-        reserva.estado.toLowerCase() === filtros.estado.toLowerCase()) &&
-      (filtros.fecha === "" || 
-        fechaReserva === fechaFiltro)
+      (filtros.nombreSalon === "" || quitarAcentos(reserva.salon.nombre.toLowerCase()).includes(quitarAcentos(filtros.nombreSalon.toLowerCase()))) &&
+      (filtros.nombreCliente === "" || quitarAcentos(reserva.cliente.nombre.toLowerCase()).includes(quitarAcentos(filtros.nombreCliente.toLowerCase()))) &&
+      (filtros.estado === "" || reserva.estado.toLowerCase() === filtros.estado.toLowerCase()) &&
+      (filtros.fecha === "" || fechaReserva === fechaFiltro)
     );
   }));
 
+  const exportarCSV = () => {
+  const encabezado = ["Salon", "Cliente", "Estado", "Fecha", "Total"];
+  const filas = reservasFiltrados.map((reserva) => [
+    quitarAcentos(reserva.salon.nombre),
+    quitarAcentos(reserva.cliente.nombre),
+    quitarAcentos(reserva.estado),
+    new Date(reserva.fecha).toLocaleDateString("es-MX"),
+    reserva.total
+  ]);
+
+  // MÉTRICAS
+  const total = reservasFiltrados.length;
+  const aprobadas = reservasFiltrados.filter(r => r.estado === "aprobada").length;
+  const pendientes = reservasFiltrados.filter(r => r.estado === "pendiente").length;
+  const rechazadas = reservasFiltrados.filter(r => r.estado === "rechazada").length;
+
+  const porMes = {};
+  const ingresosPorMes = {};
+
+  reservasFiltrados.forEach(r => {
+    if (r.estado !== "aprobada") return; // Solo incluir aprobadas
+    const mes = new Date(r.fecha).toLocaleString('es-MX', { month: 'long' });
+    porMes[mes] = (porMes[mes] || 0) + 1;
+    ingresosPorMes[mes] = (ingresosPorMes[mes] || 0) + r.total;
+  });
+
+  const ingresosTotales = reservasFiltrados.filter(r => r.estado === "aprobada").reduce((sum, r) => sum + r.total, 0);
+  const aprobadasFiltradas = reservasFiltrados.filter(r => r.estado === "aprobada");
+  const ingresoPromedio = aprobadasFiltradas.length > 0 ? (ingresosTotales / aprobadasFiltradas.length) : 0;
+
+  const salonSet = new Set(reservasFiltrados.map(r => quitarAcentos(r.salon.nombre)));
+  const salonesUnicos = salonSet.size;
+
+  const mesTop = Object.entries(porMes).sort((a, b) => b[1] - a[1])[0]?.[0] || "Sin datos";
+const nombresSalones = Array.from(salonSet).join(" | ");
+
+const resumen = [
+  ["Resumen de Metricas"],
+  ["Total de reservas:", total],
+  ["Aprobadas:", aprobadas],
+  ["Pendientes:", pendientes],
+  ["Rechazadas:", rechazadas],
+  ["Salones unicos:", salonesUnicos],
+  ["Nombres:", nombresSalones],
+  ["Mes con mas reservas:", mesTop],
+  ["Ingresos totales:", ingresosTotales],
+  ["Ingreso promedio por reserva:", ingresoPromedio.toFixed(2)],
+  [],
+  ["Reservas por mes:"],
+  ...Object.entries(porMes).map(([mes, cantidad]) => [mes + " (reservas):", cantidad]),
+  [],
+  ["Ingresos por mes:"],
+  ...Object.entries(ingresosPorMes).map(([mes, ingreso]) => [mes + " (ingresos):", ingreso]),
+  []
+];
+
+  const csvContent = [
+    ...resumen.map(row => row.join(",")),
+    encabezado.join(","),
+    ...filas.map(row => row.join(","))
+].join("\n");
+
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", "metricas_reservas.csv");
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
   return (
     <Container className="py-5">
-
       <h1 className="text-center">📅 Mis Reservas de Administrador</h1>
-
       <Row>
-
         <Col md={3}>
           <Card className="p-3 mb-4">
             <h5>🔍 Filtrar Reservas</h5>
@@ -139,6 +198,14 @@ function AdminReservasPage() {
                   onChange={(e) => setFiltros({ ...filtros, fecha: e.target.value })}
                 />
               </Form.Group>
+
+<br>
+</br>
+              <Form.Group className="mb-3 text-center">
+                <Button variant="primary" onClick={exportarCSV}>
+                  📊 Exportar CSV con Métricas
+                </Button>
+              </Form.Group>
             </Form>
           </Card>
         </Col>
@@ -149,84 +216,51 @@ function AdminReservasPage() {
               No tienes reservas aún.
             </Alert>
           ) : (
-          <Row className="g-4">
-            {reservasFiltrados.map((reserva) => (
-            <Col xs={12} key={reserva._id}>
-              <Card className="shadow-sm border-1">
-                <Row className="g-0">
-                  
-                  <Col md={4} className="d-flex align-items-center">
-                  {reserva.salon.imagenes && reserva.salon.imagenes.length > 0 ? (
-                    <Carousel className="w-100">
-                      {reserva.salon.imagenes.map((imagen, index) => (
-                        <Carousel.Item key={index}>
-                          <img
-                            src={imagen} // ✅ Ahora carga desde GCS
-                            alt={`Imagen ${index + 1}`}
-                            className="rounded-start w-100"
-                            style={{ height: "250px", objectFit: "cover" }}
-                            onError={(e) => (e.target.style.display = "none")} // Oculta si hay error
-                          />
-                        </Carousel.Item>
-                      ))}
-                    </Carousel>
-                  ) : (
-                    <div className="d-flex justify-content-center align-items-center bg-light" style={{ height: "250px", width: "100%" }}>
-                      <p className="text-muted">Sin imagen</p>
-                    </div>
-                  )}
-                  </Col> 
-
-                  <Col md={8}>
+            <Row className="g-4">
+              {reservasFiltrados.map((reserva) => (
+                <Col xs={12} key={reserva._id}>
+                  <Card className="shadow-sm border-1">
+                    <Card.Body>
                       <Row>
                         <Col md={8}>
-                          <Card.Body className="d-flex flex-column" style={{ height: "100%" }}>
-                            <Card.Title className="fw-bold fs-3">{reserva.salon.nombre}</Card.Title>
-                            <Card.Text>
-                              👤 <strong>Cliente:</strong> {reserva.cliente.nombre} <br />
-                              📧 <strong>Email de Cliente:</strong> {reserva.cliente.email} <br />
-                              <strong className="fw-bold fs-4">Fecha de Reservacion:</strong> <br />
-                              <strong className="fw-bold fs-4">{new Date(reserva.fecha).toLocaleDateString("es-MX", {timeZone: 'UTC'})}</strong>
-                            </Card.Text>
-                          </Card.Body>
+                          <Card.Title className="fw-bold fs-3">{reserva.salon.nombre}</Card.Title>
+                          <Card.Text>
+                            👤 <strong>Cliente:</strong> {reserva.cliente.nombre} <br />
+                            📧 <strong>Email de Cliente:</strong> {reserva.cliente.email} <br />
+                            <strong className="fw-bold fs-5">Fecha de Reservación:</strong> {new Date(reserva.fecha).toLocaleDateString("es-MX")}
+                          </Card.Text>
                         </Col>
-                        <Col md={4}>
-                          <Card.Body className="d-flex flex-column" style={{ height: "100%" }}>
-                            <Card.Title className="fw-bold fs-4 text-end">${reserva.total.toLocaleString("es-MX")}</Card.Title>
-                            <div className="d-flex justify-content-end"><StarRating rating={reserva.salon.calificacion} size={20} /></div>
-                            <Card.Title className={`fw-bold fs-4 text-end mt-5 ${
-                            reserva.estado === "aprobada" ? "text-success" :
-                            reserva.estado === "pendiente" ? "text-warning" :
-                            "text-danger"
-                            }`}>{reserva.estado.toUpperCase()}</Card.Title>
-                            <div className="d-flex flex-column gap-2">
-                              {reserva.estado === "pendiente" && !reserva.pagoRealizado && (
-                                <>
-                                  <Button 
-                                    variant="success"
-                                    onClick={() => actualizarEstadoReserva(reserva._id, "aprobada")}
-                                  >
+                        <Col md={4} className="text-end d-flex flex-column justify-content-between">
+                          <div>
+                            <Card.Title className="fw-bold fs-4">${reserva.total.toLocaleString("es-MX")}</Card.Title>
+                            <StarRating rating={reserva.salon.calificacion} size={20} />
+                          </div>
+                          <div>
+                            <Card.Title className={`fw-bold fs-5 mt-3 ${
+                              reserva.estado === "aprobada" ? "text-success" :
+                              reserva.estado === "pendiente" ? "text-warning" :
+                              "text-danger"
+                            }`}>
+                              {reserva.estado.toUpperCase()}
+                            </Card.Title>
+                            {reserva.estado === "pendiente" && !reserva.pagoRealizado && (
+                              <>
+                                <Button variant="success" onClick={() => actualizarEstadoReserva(reserva._id, "aprobada")} className="me-2">
                                   <FaCheckCircle /> Aprobar
-                                  </Button>
-                                  <Button 
-                                    variant="danger"
-                                    onClick={() => actualizarEstadoReserva(reserva._id, "rechazada")}
-                                  >
+                                </Button>
+                                <Button variant="danger" onClick={() => actualizarEstadoReserva(reserva._id, "rechazada")}> 
                                   <FaTimesCircle /> Rechazar
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </Card.Body>
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </Col>
                       </Row>
-                  </Col>
-
-                </Row>
-              </Card>
-            </Col>
-            ))}
-          </Row>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
           )}
         </Col>
       </Row>
