@@ -64,6 +64,8 @@ function AdminReservasPage() {
   };
 
   const reservasFiltrados = ordenarReservas(reservas.filter((reserva) => {
+    if (!reserva.salon || !reserva.cliente) return false;
+
     const fechaReserva = new Date(reserva.fecha).toLocaleDateString("es-MX", { timeZone: 'UTC' });
     const fechaFiltro = filtros.fecha ? new Date(filtros.fecha).toLocaleDateString("es-MX", { timeZone: 'UTC' }) : "";
 
@@ -76,78 +78,76 @@ function AdminReservasPage() {
   }));
 
   const exportarCSV = () => {
-  const encabezado = ["Salon", "Cliente", "Estado", "Fecha", "Total"];
-  const filas = reservasFiltrados.map((reserva) => [
-    quitarAcentos(reserva.salon.nombre),
-    quitarAcentos(reserva.cliente.nombre),
-    quitarAcentos(reserva.estado),
-    new Date(reserva.fecha).toLocaleDateString("es-MX"),
-    reserva.total
-  ]);
+    const encabezado = ["Salon", "Cliente", "Estado", "Fecha", "Total"];
+    const filas = reservasFiltrados.map((reserva) => [
+      quitarAcentos(reserva.salon.nombre),
+      quitarAcentos(reserva.cliente.nombre),
+      quitarAcentos(reserva.estado),
+      new Date(reserva.fecha).toLocaleDateString("es-MX"),
+      reserva.total
+    ]);
 
-  // MÉTRICAS
-  const total = reservasFiltrados.length;
-  const aprobadas = reservasFiltrados.filter(r => r.estado === "aprobada").length;
-  const pendientes = reservasFiltrados.filter(r => r.estado === "pendiente").length;
-  const rechazadas = reservasFiltrados.filter(r => r.estado === "rechazada").length;
+    const total = reservasFiltrados.length;
+    const aprobadas = reservasFiltrados.filter(r => r.estado === "aprobada").length;
+    const pendientes = reservasFiltrados.filter(r => r.estado === "pendiente").length;
+    const rechazadas = reservasFiltrados.filter(r => r.estado === "rechazada").length;
 
-  const porMes = {};
-  const ingresosPorMes = {};
+    const porMes = {};
+    const ingresosPorMes = {};
 
-  reservasFiltrados.forEach(r => {
-    if (r.estado !== "aprobada") return; // Solo incluir aprobadas
-    const mes = new Date(r.fecha).toLocaleString('es-MX', { month: 'long' });
-    porMes[mes] = (porMes[mes] || 0) + 1;
-    ingresosPorMes[mes] = (ingresosPorMes[mes] || 0) + r.total;
-  });
+    reservasFiltrados.forEach(r => {
+      if (r.estado !== "aprobada") return;
+      const mes = new Date(r.fecha).toLocaleString('es-MX', { month: 'long' });
+      porMes[mes] = (porMes[mes] || 0) + 1;
+      ingresosPorMes[mes] = (ingresosPorMes[mes] || 0) + r.total;
+    });
 
-  const ingresosTotales = reservasFiltrados.filter(r => r.estado === "aprobada").reduce((sum, r) => sum + r.total, 0);
-  const aprobadasFiltradas = reservasFiltrados.filter(r => r.estado === "aprobada");
-  const ingresoPromedio = aprobadasFiltradas.length > 0 ? (ingresosTotales / aprobadasFiltradas.length) : 0;
+    const ingresosTotales = reservasFiltrados.filter(r => r.estado === "aprobada").reduce((sum, r) => sum + r.total, 0);
+    const aprobadasFiltradas = reservasFiltrados.filter(r => r.estado === "aprobada");
+    const ingresoPromedio = aprobadasFiltradas.length > 0 ? (ingresosTotales / aprobadasFiltradas.length) : 0;
 
-  const salonSet = new Set(reservasFiltrados.map(r => quitarAcentos(r.salon.nombre)));
-  const salonesUnicos = salonSet.size;
+    const salonSet = new Set(reservasFiltrados.map(r => quitarAcentos(r.salon.nombre)));
+    const salonesUnicos = salonSet.size;
 
-  const mesTop = Object.entries(porMes).sort((a, b) => b[1] - a[1])[0]?.[0] || "Sin datos";
-const nombresSalones = Array.from(salonSet).join(" | ");
+    const mesTop = Object.entries(porMes).sort((a, b) => b[1] - a[1])[0]?.[0] || "Sin datos";
+    const nombresSalones = Array.from(salonSet).join(" | ");
 
-const resumen = [
-  ["Resumen de Metricas"],
-  ["Total de reservas:", total],
-  ["Aprobadas:", aprobadas],
-  ["Pendientes:", pendientes],
-  ["Rechazadas:", rechazadas],
-  ["Salones unicos:", salonesUnicos],
-  ["Nombres:", nombresSalones],
-  ["Mes con mas reservas:", mesTop],
-  ["Ingresos totales:", ingresosTotales],
-  ["Ingreso promedio por reserva:", ingresoPromedio.toFixed(2)],
-  [],
-  ["Reservas por mes:"],
-  ...Object.entries(porMes).map(([mes, cantidad]) => [mes + " (reservas):", cantidad]),
-  [],
-  ["Ingresos por mes:"],
-  ...Object.entries(ingresosPorMes).map(([mes, ingreso]) => [mes + " (ingresos):", ingreso]),
-  []
-];
+    const resumen = [
+      ["Resumen de Métricas"],
+      ["Total de reservas:", total],
+      ["Aprobadas:", aprobadas],
+      ["Pendientes:", pendientes],
+      ["Rechazadas:", rechazadas],
+      ["Salones únicos:", salonesUnicos],
+      ["Nombres:", nombresSalones],
+      ["Mes con más reservas:", mesTop],
+      ["Ingresos totales:", ingresosTotales],
+      ["Ingreso promedio por reserva:", ingresoPromedio.toFixed(2)],
+      [],
+      ["Reservas por mes:"],
+      ...Object.entries(porMes).map(([mes, cantidad]) => [mes + " (reservas):", cantidad]),
+      [],
+      ["Ingresos por mes:"],
+      ...Object.entries(ingresosPorMes).map(([mes, ingreso]) => [mes + " (ingresos):", ingreso]),
+      []
+    ];
 
-  const csvContent = [
-    ...resumen.map(row => row.join(",")),
-    encabezado.join(","),
-    ...filas.map(row => row.join(","))
-].join("\n");
+    const csvContent = [
+      ...resumen.map(row => row.join(",")),
+      encabezado.join(","),
+      ...filas.map(row => row.join(","))
+    ].join("\n");
 
-
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", "metricas_reservas.csv");
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "metricas_reservas.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <Container className="py-5">
@@ -199,8 +199,6 @@ const resumen = [
                 />
               </Form.Group>
 
-<br>
-</br>
               <Form.Group className="mb-3 text-center">
                 <Button variant="primary" onClick={exportarCSV}>
                   📊 Exportar CSV con Métricas
@@ -217,49 +215,53 @@ const resumen = [
             </Alert>
           ) : (
             <Row className="g-4">
-              {reservasFiltrados.map((reserva) => (
-                <Col xs={12} key={reserva._id}>
-                  <Card className="shadow-sm border-1">
-                    <Card.Body>
-                      <Row>
-                        <Col md={8}>
-                          <Card.Title className="fw-bold fs-3">{reserva.salon.nombre}</Card.Title>
-                          <Card.Text>
-                            👤 <strong>Cliente:</strong> {reserva.cliente.nombre} <br />
-                            📧 <strong>Email de Cliente:</strong> {reserva.cliente.email} <br />
-                            <strong className="fw-bold fs-5">Fecha de Reservación:</strong> {new Date(reserva.fecha).toLocaleDateString("es-MX")}
-                          </Card.Text>
-                        </Col>
-                        <Col md={4} className="text-end d-flex flex-column justify-content-between">
-                          <div>
-                            <Card.Title className="fw-bold fs-4">${reserva.total.toLocaleString("es-MX")}</Card.Title>
-                            <StarRating rating={reserva.salon.calificacion} size={20} />
-                          </div>
-                          <div>
-                            <Card.Title className={`fw-bold fs-5 mt-3 ${
-                              reserva.estado === "aprobada" ? "text-success" :
-                              reserva.estado === "pendiente" ? "text-warning" :
-                              "text-danger"
-                            }`}>
-                              {reserva.estado.toUpperCase()}
-                            </Card.Title>
-                            {reserva.estado === "pendiente" && !reserva.pagoRealizado && (
-                              <>
-                                <Button variant="success" onClick={() => actualizarEstadoReserva(reserva._id, "aprobada")} className="me-2">
-                                  <FaCheckCircle /> Aprobar
-                                </Button>
-                                <Button variant="danger" onClick={() => actualizarEstadoReserva(reserva._id, "rechazada")}> 
-                                  <FaTimesCircle /> Rechazar
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </Col>
-                      </Row>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
+              {reservasFiltrados.map((reserva) => {
+                if (!reserva.salon || !reserva.cliente) return null;
+
+                return (
+                  <Col xs={12} key={reserva._id}>
+                    <Card className="shadow-sm border-1">
+                      <Card.Body>
+                        <Row>
+                          <Col md={8}>
+                            <Card.Title className="fw-bold fs-3">{reserva.salon.nombre}</Card.Title>
+                            <Card.Text>
+                              👤 <strong>Cliente:</strong> {reserva.cliente.nombre} <br />
+                              📧 <strong>Email de Cliente:</strong> {reserva.cliente.email} <br />
+                              <strong className="fw-bold fs-5">Fecha de Reservación:</strong> {new Date(reserva.fecha).toLocaleDateString("es-MX")}
+                            </Card.Text>
+                          </Col>
+                          <Col md={4} className="text-end d-flex flex-column justify-content-between">
+                            <div>
+                              <Card.Title className="fw-bold fs-4">${reserva.total.toLocaleString("es-MX")}</Card.Title>
+                              <StarRating rating={reserva.salon.calificacion} size={20} />
+                            </div>
+                            <div>
+                              <Card.Title className={`fw-bold fs-5 mt-3 ${
+                                reserva.estado === "aprobada" ? "text-success" :
+                                reserva.estado === "pendiente" ? "text-warning" :
+                                "text-danger"
+                              }`}>
+                                {reserva.estado.toUpperCase()}
+                              </Card.Title>
+                              {reserva.estado === "pendiente" && !reserva.pagoRealizado && (
+                                <>
+                                  <Button variant="success" onClick={() => actualizarEstadoReserva(reserva._id, "aprobada")} className="me-2">
+                                    <FaCheckCircle /> Aprobar
+                                  </Button>
+                                  <Button variant="danger" onClick={() => actualizarEstadoReserva(reserva._id, "rechazada")}> 
+                                    <FaTimesCircle /> Rechazar
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </Col>
+                        </Row>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                );
+              })}
             </Row>
           )}
         </Col>
