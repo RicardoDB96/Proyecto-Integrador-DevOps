@@ -1,7 +1,7 @@
 // frontend/src/pages/ReservasPage.jsx
 import React, { useEffect, useState } from "react";
 import api from "../services/api";
-import { Container, Button, Alert, Row, Col, Card, Carousel, Form } from "react-bootstrap";
+import { Container, Button, Alert, Row, Col, Card, Form } from "react-bootstrap";
 import StarRating from "../components/Estrellas"
 
 function ReservasPage() {
@@ -19,7 +19,6 @@ function ReservasPage() {
       .catch((error) => console.error("Error al obtener reservas:", error));
   }, [token]);
 
-  // 🔹 Cancelar una reserva
   const handleCancelarReserva = async (id) => {
     if (!window.confirm("¿Estás seguro de cancelar esta reserva?")) return;
 
@@ -36,7 +35,6 @@ function ReservasPage() {
     }
   };
 
-  // 🔹 Iniciar proceso de pago con Stripe
   const handlePagar = async (reservaId) => {
     try {
       const response = await api.post(
@@ -47,14 +45,13 @@ function ReservasPage() {
         }
       );
 
-      window.location.href = response.data.url; // Redirigir a Stripe Checkout
+      window.location.href = response.data.url;
     } catch (error) {
       alert("Error al iniciar el pago");
       console.error("Error:", error);
     }
   };
 
-  // 🔹 Confirmar pago (solo pruebas)
   const handleConfirmarPago = async (reservaId) => {
     try {
       await api.put(`/reservas/${reservaId}/confirmar-pago`, {}, {
@@ -72,33 +69,28 @@ function ReservasPage() {
   };
 
   const [filtros, setFiltros] = useState({
-      nombreSalon: "",
-      nombreCliente: "",
-      estado: "",
-      fecha: ""
-    });
+    nombreSalon: "",
+    nombreCliente: "",
+    estado: "",
+    fecha: ""
+  });
 
   const quitarAcentos = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  // Función para ordenar las reservas
   const ordenarReservas = (reservas) => {
     return [...reservas].sort((a, b) => {
-      // Primero ordenar por estado (pendientes primero)
       const ordenEstados = { pendiente: 1, aprobada: 2, rechazada: 3 };
       if (ordenEstados[a.estado] !== ordenEstados[b.estado]) {
         return ordenEstados[a.estado] - ordenEstados[b.estado];
       }
-      
-      // Luego ordenar por fecha (más nuevas primero)
       return new Date(b.fecha) - new Date(a.fecha);
     });
   };
 
-  // Filtrar y ordenar las reservas
   const reservasFiltrados = ordenarReservas(reservas.filter((reserva) => {
     const fechaReserva = new Date(reserva.fecha).toLocaleDateString("es-MX", {timeZone: 'UTC'});
     const fechaFiltro = filtros.fecha ? new Date(filtros.fecha).toLocaleDateString("es-MX", {timeZone: 'UTC'}) : "";
-    
+
     return (
       (filtros.nombreSalon === "" || 
         quitarAcentos(reserva.salon.nombre.toLowerCase()).includes(
@@ -116,7 +108,6 @@ function ReservasPage() {
       <h1 className="text-center">📅 Mis Reservas</h1>
 
       <Row>
-
         <Col md={3}>
           <Card className="p-3 mb-4">
             <h5>🔍 Filtrar Reservas</h5>
@@ -162,95 +153,54 @@ function ReservasPage() {
               No tienes reservas aún.
             </Alert>
           ) : (
-          <Row className="g-4">
-            {reservasFiltrados.map((reserva) => (
-            <Col xs={12} key={reserva._id}>
-              <Card className="shadow-sm border-1">
-                <Row className="g-0">
-                  
-                  <Col md={4} className="d-flex align-items-center">
-                  {reserva.salon.imagenes && reserva.salon.imagenes.length > 0 ? (
-                    <Carousel className="w-100">
-                      {reserva.salon.imagenes.map((imagen, index) => (
-                        <Carousel.Item key={index}>
-                          <img
-                            src={imagen} // ✅ Ahora carga desde GCS
-                            alt={`Imagen ${index + 1}`}
-                            className="rounded-start w-100"
-                            style={{ height: "250px", objectFit: "cover" }}
-                            onError={(e) => (e.target.style.display = "none")} // Oculta si hay error
-                          />
-                        </Carousel.Item>
-                      ))}
-                    </Carousel>
-                  ) : (
-                    <div className="d-flex justify-content-center align-items-center bg-light" style={{ height: "250px", width: "100%" }}>
-                      <p className="text-muted">Sin imagen</p>
-                    </div>
-                  )}
-                  </Col> 
+            <Row className="g-4">
+              {reservasFiltrados.map((reserva) => (
+                <Col xs={12} key={reserva._id}>
+                  <Card className="shadow-sm border-1">
+                    <Col>
+                      <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-start">
+                        <div className="flex-grow-1">
+                          <Card.Title className="fw-bold fs-3">{reserva.salon.nombre}</Card.Title>
+                          <Card.Text>
+                            📍 <strong>Ubicación:</strong> {reserva.salon.ubicacion} <br />
+                            🏢 <strong>Capacidad:</strong> {reserva.salon.capacidad} personas <br />
+                            ☎️ <strong>Teléfono:</strong> {reserva.salon.telefono} <br />
+                            📧 <strong>Email:</strong> {reserva.salon.email} <br />
+                            <strong className="fw-bold fs-4">Fecha de Reservación:</strong> <br />
+                            <strong className="fw-bold fs-4">{new Date(reserva.fecha).toLocaleDateString("es-MX", { timeZone: "UTC" })}</strong>
+                          </Card.Text>
+                        </div>
 
-                  <Col md={8}>
-                      <Row>
-                        <Col md={8}>
-                          <Card.Body className="d-flex flex-column" style={{ height: "100%" }}>
-                            <Card.Title className="fw-bold fs-3">{reserva.salon.nombre}</Card.Title>
-                            <Card.Text>
-                              📍 <strong>Ubicación:</strong> {reserva.salon.ubicacion} <br />
-                              🏢 <strong>Capacidad:</strong> {reserva.salon.capacidad} personas <br />
-                              ☎️ <strong>Teléfono:</strong> {reserva.salon.telefono} <br />
-                              📧 <strong>Email:</strong> {reserva.salon.email} <br />
-                              <strong className="fw-bold fs-4">Fecha de Reservacion:</strong> <br />
-                              <strong className="fw-bold fs-4">{new Date(reserva.fecha).toLocaleDateString("es-MX", {timeZone: 'UTC'})}</strong>
-                            </Card.Text>
-                          </Card.Body>
-                        </Col>
-                        <Col md={4}>
-                          <Card.Body className="d-flex flex-column" style={{ height: "100%" }}>
-                            <Card.Title className="fw-bold fs-4 text-end">${reserva.total.toLocaleString("es-MX")}</Card.Title>
-                            <div className="d-flex justify-content-end"><StarRating rating={reserva.salon.calificacion} size={20} /></div>
-                            <Card.Title className={`fw-bold fs-4 text-end mt-5 ${
+                        <div className="text-end ms-md-3 mt-3 mt-md-0">
+                          <Card.Title className="fw-bold fs-4">${reserva.total.toLocaleString("es-MX")}</Card.Title>
+                          <StarRating rating={reserva.salon.calificacion} size={20} />
+                          <Card.Title className={`fw-bold fs-4 mt-3 ${
                             reserva.estado === "aprobada" ? "text-success" :
                             reserva.estado === "pendiente" ? "text-warning" :
                             "text-danger"
-                            }`}>{reserva.estado.toUpperCase()}</Card.Title>
-                            <div className="d-flex flex-column gap-2">
-                              {reserva.estado === "aprobada" && !reserva.pagoRealizado && (
-                                <>
-                                  <Button 
-                                    variant="primary"
-                                    onClick={() => handlePagar(reserva._id)}
-                                  >
-                                    💳 Pagar Ahora
-                                  </Button>
-                                  <Button 
-                                    variant="success"
-                                    onClick={() => handleConfirmarPago(reserva._id)}
-                                  >
-                                    ✅ Confirmar Pago (Pruebas)
-                                  </Button>
-                                </>
-                              )}
-                              
-                              {reserva.estado === "pendiente" && (
-                                <Button
-                                  variant="danger"
-                                  onClick={() => handleCancelarReserva(reserva._id)}
-                                >
-                                  ❌ Cancelar Reserva
-                                </Button>
-                              )}
-                            </div>
-                          </Card.Body>
-                        </Col>
-                      </Row>
-                  </Col>
+                          }`}>
+                            {reserva.estado.toUpperCase()}
+                          </Card.Title>
 
-                </Row>
-              </Card>
-            </Col>
-            ))}
-          </Row>
+                          <div className="d-flex flex-column gap-2 mt-2">
+                            {reserva.estado === "aprobada" && !reserva.pagoRealizado && (
+                              <>
+                                <Button variant="primary" onClick={() => handlePagar(reserva._id)}>💳 Pagar Ahora</Button>
+                                <Button variant="success" onClick={() => handleConfirmarPago(reserva._id)}>✅ Confirmar Pago (Pruebas)</Button>
+                              </>
+                            )}
+
+                            {reserva.estado === "pendiente" && (
+                              <Button variant="danger" onClick={() => handleCancelarReserva(reserva._id)}>❌ Cancelar Reserva</Button>
+                            )}
+                          </div>
+                        </div>
+                      </Card.Body>
+                    </Col>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
           )}
         </Col>
       </Row>
