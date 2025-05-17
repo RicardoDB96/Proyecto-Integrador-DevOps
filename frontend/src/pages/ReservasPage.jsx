@@ -163,9 +163,6 @@ function ReservasPage() {
                           <Card.Title className="fw-bold fs-3">{reserva.salon.nombre}</Card.Title>
                           <Card.Text>
                             📍 <strong>Ubicación:</strong> {reserva.salon.ubicacion} <br />
-                            🏢 <strong>Capacidad:</strong> {reserva.salon.capacidad} personas <br />
-                            ☎️ <strong>Teléfono:</strong> {reserva.salon.telefono} <br />
-                            📧 <strong>Email:</strong> {reserva.salon.email} <br />
                             <strong className="fw-bold fs-4">Fecha de Reservación:</strong> <br />
                             <strong className="fw-bold fs-4">{new Date(reserva.fecha).toLocaleDateString("es-MX", { timeZone: "UTC" })}</strong>
                           </Card.Text>
